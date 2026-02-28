@@ -1,29 +1,132 @@
-[gd_scene load_steps=2 format=3 uid="uid://d1q5w5j0q0q0w"]
+[gd_scene format=3 uid="uid://d1q5w5j0q0q0w"]
 
-[ext_resource type="Script" path="res://scripts/player_controller.gd"]
+[ext_resource type="PackedScene" uid="uid://pt3n1aiqwpwf" path="res://scenes/Player.tscn" id="1_elqb8"]
 
-[node name="Main" type="Node2D"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_elqb8"]
+size = Vector2(1600, 20)
 
-# TODO: Main game scene that connects all systems
-# - Player instance
-# - TileMap for terrain
-# - NPC instances
-# - UI layer
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_rvslj"]
+size = Vector2(1600, 20)
 
-[node name="Player" type="CharacterBody2D" parent="."]
-script = ExtResource("res://scripts/player_controller.gd")
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_0bbpv"]
+size = Vector2(20, 900)
 
-[node name="Sprite2D" type="Sprite2D" parent="Player"]
-# TODO: Load player sprite texture here
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_rarhs"]
+size = Vector2(20, 900)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Player"]
-# TODO: Add collision shape for player
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_vcsgt"]
+size = Vector2(220, 140)
 
-[node name="NPCs" type="Node2D" parent="."]
-# TODO: Add NPC instances here as children
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_c01mt"]
+size = Vector2(220, 140)
 
-[node name="UI" type="CanvasLayer" parent="."]
-# TODO: Connect to UI manager script
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_nxtc6"]
+size = Vector2(260, 160)
 
-[node name="DialogueBox" type="Control" parent="UI"]
-# TODO: Implement dialogue UI
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_jlsqs"]
+size = Vector2(220, 140)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_q8u5g"]
+size = Vector2(260, 170)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_lhr70"]
+size = Vector2(240, 160)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_wp0k4"]
+size = Vector2(220, 150)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_bjd11"]
+size = Vector2(220, 150)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_qmy6f"]
+size = Vector2(300, 240)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_mwfav"]
+size = Vector2(159, 190)
+
+[node name="Main" type="Node2D" unique_id=200333195]
+
+[node name="Polygon2D" type="Polygon2D" parent="." unique_id=768410909]
+position = Vector2(-3, 0)
+color = Color(0, 1, 0, 1)
+polygon = PackedVector2Array(0, 0, 1600, 0, 1600, 900, 0, 900)
+
+[node name="PlayerRoot" parent="." unique_id=2041773753 instance=ExtResource("1_elqb8")]
+
+[node name="Walls" type="StaticBody2D" parent="." unique_id=924438832]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Walls" unique_id=2066590448]
+position = Vector2(800, -10)
+shape = SubResource("RectangleShape2D_elqb8")
+debug_color = Color(0.9843137, 0, 0, 0.41960785)
+
+[node name="CollisionShape2D2" type="CollisionShape2D" parent="Walls" unique_id=697429051]
+position = Vector2(800, 910)
+shape = SubResource("RectangleShape2D_rvslj")
+
+[node name="CollisionShape2D3" type="CollisionShape2D" parent="Walls" unique_id=5658317]
+position = Vector2(-10, 450)
+shape = SubResource("RectangleShape2D_0bbpv")
+
+[node name="CollisionShape2D4" type="CollisionShape2D" parent="Walls" unique_id=473244634]
+position = Vector2(1610, 450)
+shape = SubResource("RectangleShape2D_rarhs")
+
+[node name="Buildings" type="StaticBody2D" parent="." unique_id=333950049]
+
+[node name="Bld_Bakery" type="CollisionShape2D" parent="Buildings" unique_id=653710581]
+position = Vector2(250, 140)
+shape = SubResource("RectangleShape2D_vcsgt")
+
+[node name="Bld_SignShop" type="CollisionShape2D" parent="Buildings" unique_id=1435671700]
+position = Vector2(520, 140)
+shape = SubResource("RectangleShape2D_c01mt")
+
+[node name="Bld_Hall" type="CollisionShape2D" parent="Buildings" unique_id=1783457793]
+position = Vector2(820, 140)
+shape = SubResource("RectangleShape2D_nxtc6")
+
+[node name="Bld_Merch" type="CollisionShape2D" parent="Buildings" unique_id=34120494]
+position = Vector2(1120, 140)
+shape = SubResource("RectangleShape2D_jlsqs")
+
+[node name="Bld_House1" type="CollisionShape2D" parent="Buildings" unique_id=1489848091]
+position = Vector2(240, 720)
+shape = SubResource("RectangleShape2D_q8u5g")
+
+[node name="Bld_House2" type="CollisionShape2D" parent="Buildings" unique_id=1244644440]
+position = Vector2(560, 720)
+shape = SubResource("RectangleShape2D_lhr70")
+
+[node name="Bld_House3" type="CollisionShape2D" parent="Buildings" unique_id=1183359812]
+position = Vector2(860, 720)
+shape = SubResource("RectangleShape2D_wp0k4")
+
+[node name="Bld_House4" type="CollisionShape2D" parent="Buildings" unique_id=1855624933]
+position = Vector2(1120, 720)
+shape = SubResource("RectangleShape2D_bjd11")
+
+[node name="StageArea" type="Node2D" parent="." unique_id=829020355]
+
+[node name="StageVisual" type="Polygon2D" parent="StageArea" unique_id=907624368]
+color = Color(0.70929426, 0.42995995, 0.13817072, 1)
+polygon = PackedVector2Array(1250, 280, 1550, 280, 1550, 520, 1250, 520)
+vertex_colors = PackedColorArray(1, 0.39749125, 0.35298666, 1)
+
+[node name="StageCollision" type="StaticBody2D" parent="StageArea" unique_id=984794760]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="StageArea/StageCollision" unique_id=1920827500]
+position = Vector2(1400, 400)
+shape = SubResource("RectangleShape2D_qmy6f")
+
+[node name="PondArea" type="Node2D" parent="." unique_id=1300323303]
+
+[node name="Polygon2D" type="Polygon2D" parent="PondArea" unique_id=1469966746]
+color = Color(0, 0.7529412, 1, 1)
+polygon = PackedVector2Array(1360, 650, 1520, 650, 1520, 840, 1360, 840)
+
+[node name="PondCollision" type="StaticBody2D" parent="PondArea" unique_id=1829641350]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="PondArea/PondCollision" unique_id=887823902]
+position = Vector2(1440.5, 745)
+shape = SubResource("RectangleShape2D_mwfav")

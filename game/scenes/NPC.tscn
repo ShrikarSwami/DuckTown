@@ -1,29 +1,5 @@
-[gd_scene load_steps=2 format=3 uid="uid://e9z9z9z9z9z9z"]
+[gd_scene format=3 uid="uid://c4cfqlf3rwees"]
 
-[ext_resource type="Script" path="res://scripts/npc_interaction.gd"]
+[node name="Npc" type="Node" unique_id=440618083]
 
-[node name="NPC" type="Node2D"]
-script = ExtResource("res://scripts/npc_interaction.gd")
-
-# TODO: Template NPC scene
-# - Sprite2D for character
-# - Area2D for interaction radius
-# - Properties: npc_id, name, personality traits
-
-[node name="Sprite2D" type="Sprite2D" parent="."]
-# TODO: Load NPC sprite (24x24 pixels, unique color)
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
-# TODO: Add collision shape
-
-[node name="InteractionArea" type="Area2D" parent="."]
-# TODO: Area to trigger dialogue when player is near
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="InteractionArea"]
-# TODO: Add radius circle for interaction range (e.g., 60 pixels)
-
-# TODO: Add custom properties in Inspector:
-# - npc_id (e.g., "alice")
-# - npc_name (e.g., "Alice the Organizer")
-# - personality_traits (Array of strings)
-# - initial_relationship (int, -100 to 100)
+[node name="CharacterBody2D" type="CharacterBody2D" parent="." unique_id=8262334]
