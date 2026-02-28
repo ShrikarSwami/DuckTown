@@ -1,0 +1,56 @@
+[gd_scene format=3 uid="uid://f0a0a0a0a0a0a"]
+
+[node name="UI" type="CanvasLayer"]
+
+# TODO: Main UI manager scene
+# - Dialogue box for conversations
+# - Relationship panel showing NPC relationships
+# - Quest log
+# - Settings menu
+
+[node name="DialogueBox" type="Control" parent="."]
+anchor_left = 0.1
+anchor_right = 0.9
+anchor_top = 0.65
+anchor_bottom = 0.95
+# TODO: Implement dialogue display panel
+# - NPC name label
+# - Dialogue text
+# - Option buttons (if branching dialogue)
+
+[node name="NPCName" type="Label" parent="DialogueBox"]
+anchor_top = 0.0
+anchor_bottom = 0.15
+text = "NPC Name"
+# TODO: Configure font and color
+
+[node name="DialogueText" type="Label" parent="DialogueBox"]
+anchor_top = 0.15
+anchor_bottom = 1.0
+text = "Dialogue text goes here..."
+# TODO: Configure for text wrapping and scrolling
+
+[node name="RelationshipPanel" type="Control" parent="."]
+anchor_left = 0.0
+anchor_right = 0.25
+anchor_top = 0.0
+anchor_bottom = 0.5
+# TODO: Show player's relationships with NPCs
+# - List of NPC names and relationship scores
+# - Visual heart indicator
+
+[node name="QuestLog" type="Control" parent="."]
+anchor_left = 0.75
+anchor_right = 1.0
+anchor_top = 0.0
+anchor_bottom = 0.5
+# TODO: Show active quests
+# - Quest name
+# - Progress bar
+# - Current objective
+
+[node name="SettingsMenu" type="Control" parent="."]
+# TODO: Settings panel (paused overlay)
+# - Backend URL configuration
+# - Audio volume
+# - Graphics settings

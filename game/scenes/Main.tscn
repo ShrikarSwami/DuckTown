@@ -1,0 +1,29 @@
+[gd_scene load_steps=2 format=3 uid="uid://d1q5w5j0q0q0w"]
+
+[ext_resource type="Script" path="res://scripts/player_controller.gd"]
+
+[node name="Main" type="Node2D"]
+
+# TODO: Main game scene that connects all systems
+# - Player instance
+# - TileMap for terrain
+# - NPC instances
+# - UI layer
+
+[node name="Player" type="CharacterBody2D" parent="."]
+script = ExtResource("res://scripts/player_controller.gd")
+
+[node name="Sprite2D" type="Sprite2D" parent="Player"]
+# TODO: Load player sprite texture here
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Player"]
+# TODO: Add collision shape for player
+
+[node name="NPCs" type="Node2D" parent="."]
+# TODO: Add NPC instances here as children
+
+[node name="UI" type="CanvasLayer" parent="."]
+# TODO: Connect to UI manager script
+
+[node name="DialogueBox" type="Control" parent="UI"]
+# TODO: Implement dialogue UI

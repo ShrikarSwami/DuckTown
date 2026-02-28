@@ -1,0 +1,22 @@
+[gd_scene load_steps=2 format=3 uid="uid://c8x8x8y8y8y8y"]
+
+[ext_resource type="Script" path="res://scripts/player_controller.gd"]
+
+[node name="Player" type="CharacterBody2D"]
+script = ExtResource("res://scripts/player_controller.gd")
+
+# TODO: Player character scene
+# - Sprite2D for character sprite
+# - CollisionShape2D for collision
+# - AnimatedSprite2D for walk cycles
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+# TODO: Load player sprite texture
+# Recommended: 24x24 pixel sprite
+# See /docs/art_pipeline.md for sprite guidelines
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+# TODO: Add CircleShape2D or CapsuleShape2D
+
+[node name="InteractionArea" type="Area2D" parent="."]
+# TODO: Detect nearby NPCs for dialogue trigger
