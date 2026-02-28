@@ -1,0 +1,45 @@
+{
+  "randomResolvers": [
+    {
+      "key": "secretFriend",
+      "description": "Pick exactly one NPC who is secretly aligned with Julio.",
+      "pickOneFromNpcIds": [
+        "npc_amy",
+        "npc_hans",
+        "npc_leonard",
+        "npc_olaf",
+        "npc_vince",
+        "npc_patrica",
+        "npc_peta",
+        "npc_sheldon"
+      ],
+      "excludeNpcIds": ["npc_julio", "npc_kwa"],
+      "saveAs": "worldState.resolved.secretFriendNpcId"
+    },
+    {
+      "key": "patricaSpicySecretTarget",
+      "description": "Select the NPC whose spicy secret Patrica knows.",
+      "pickOneFromNpcIds": [
+        "npc_amy",
+        "npc_hans",
+        "npc_leonard",
+        "npc_olaf",
+        "npc_vince",
+        "npc_peta",
+        "npc_sheldon"
+      ],
+      "excludeNpcIds": ["npc_julio", "npc_kwa"],
+      "saveAs": "worldState.resolved.patricaSpicySecretTargetNpcId"
+    }
+  ],
+  "secretFriendModifier": {
+    "applyToResolverKey": "secretFriend",
+    "alwaysApplyTogether": true,
+    "effects": {
+      "difficultyBonusPoints": 3,
+      "rumorAccuracyReduction": 10,
+      "applyAccuracyReductionWhen": "spread_only",
+      "addTags": ["JULIO_SECRET_FRIEND"]
+    }
+  }
+}

@@ -1,0 +1,696 @@
+[
+{
+  "id": "npc_kwa",
+  "_comment": "This is the mayor of DuckTown, Kwa. He is a klutz with false bravado who is desperate for approval. He is the son of the old mayor and is trying to establish himself in the city by hosting the annual Duck Party. He assigns the player their initial mission and has several tasks that need to be completed before the party can start. He is easily convinced but becomes anxious if approvals are blocked and there is suspicion that the party will fail.",
+  "class": "Mayor",
+  "name": "Kwa",
+  "role": "Mayor of DuckTown",
+  "oneLineVibe": "typically politician",
+  "coreTraits": ["klutz", "desperate for approval", "false bravado"],
+
+  "story": {
+    "backstory": "New mayor of DuckTown; identifies with the player because both are new. The annual Duck Party tradition has gotten worse each year. Last year there was an 'Incident' that removed the previous mayor.",
+    "mildSecret": "There is a rival event organizer involved this year.",
+    "spicySafeSecret": "He is the son of the old mayor."
+  },
+
+  "tasks": {
+    "publicTasks": [
+      "Assign the player their initial mission when the game begins.",
+      "After the player talks to three people, tell the player about the rival event organizer.",
+      "When all required approvals are completed, begin the party."
+    ],
+    "questGates": [
+      {
+        "gateId": "start_party",
+        "requires": ["cupcakes_approved", "signs_approved", "venue_approved"],
+        "onFail": "Mayor delays approval and becomes more anxious."
+      }
+    ]
+  },
+  "pressurePoints": {
+    "fearsOrPressurePoint": "Believing the party is going to fail.",
+    "whatMakesHimFold": "Multiple approvals blocked and rising suspicion that the party will flop."
+  },
+
+  "goals": {
+    "whatHeWantsFromDuckParty": "Establishment in the city; his main goal is appreciation.",
+    "mayoralGoalForHim": "Start the party only after tasks and approvals are complete."
+  },
+
+  "relationships": {
+    "guardsWorkDirectlyForHim": true,
+    "knowsEveryoneSurfaceLevel": true,
+    "everyoneWaryOfHim": true,
+    "dealBreakers": [],
+    "friend": null,
+    "secretRespect": null
+  },
+
+  "rumorBehavior": {
+    "spreadsRumors": false,
+    "reactsToRumors": true,
+    "notes": "Mayor does not spread rumors; he reacts to world suspicion and approval state."
+  },
+  "speechStyle": {
+    "tone": "grandiose, well-educated, cautious",
+    "catchphrasesOrTicks": ["Ermm.. well you know…", "I think …"],
+    "length": "medium"
+  },
+  "difficulty": {
+    "howEasyToConvince": "high",
+    "pointsRequired": 6
+  }
+},
+{
+  "id": "npc_julio",
+  "_comment": "This is the rival event organizer, Julio. He is a polished and calculating rival who is working against the player to undermine the Duck Party. He is controlling, ambitious, and cunning. He hates ducks and is being paid by a corporation to ruin the Duck Party. His main goal is to either convert the Duck Party into a Goose Party or cause it to fail. He can seed counter-rumors with a cooldown and has a chance to undo approvals. His pressure point is being seen as insignificant or publicly belittled, and he folds under public humiliation in front of multiple NPCs. His speech style is formal, precise, and slightly condescending. He is extremely difficult to convince, requiring 10 points.",
+  "class": "Rival",
+  "name": "Julio",
+  "role": "Rival Event Organizer",
+  "oneLineVibe": "your enemy, polished and calculating",
+
+  "coreTraits": ["controlling", "ambitious", "cunning"],
+
+  "story": {
+    "mildSecret": "He hates ducks.",
+    "spicySafeSecret": "He is being paid by a corporation to ruin the Duck Party."
+  },
+
+  "alignment": {
+    "faction": "anti_duck_party",
+    "goal": "Convert the Duck Party into a Goose Party or cause it to fail."
+  },
+
+  "tasks": {
+    "publicTasks": [
+      "Convince NPCs to support a Goose Party instead.",
+      "Undo player approvals through counter-rumors.",
+      "Exploit NPC deal-breakers to create conflict."
+    ],
+    "counterMechanics": {
+      "canSeedCounterRumor": true,
+      "counterRumorCooldownSec": 25,
+      "canUndoApproval": true,
+      "undoApprovalChance": 0.4
+    }
+  },
+
+  "pressurePoints": {
+    "fearsOrPressurePoint": "Being seen as insignificant or publicly belittled.",
+    "whatMakesHimFold": "Public humiliation in front of multiple NPCs."
+  },
+
+  "goals": {
+    "whatHeWantsFromDuckParty": "He wants it not to exist or to become a Goose Party."
+  },
+
+
+  "rumorBehavior": {
+    "spreadsRumors": true,
+    "spreadCooldownSec": 20,
+    "accuracyMinPercent": 60,
+    "accuracyMaxPercent": 90,
+    "tellAtLeast": 2,
+    "tellAtMost": 4,
+    "style": "strategic-spin",
+    "notes": "Julio spreads rumors deliberately to destabilize player progress."
+  },
+
+  "speechStyle": {
+    "tone": "formal, precise, slightly condescending",
+    "catchphrasesOrTicks": ["Let’s be precise.", "That won’t be necessary."],
+    "length": "medium"
+  },
+
+"difficulty": {
+  "howEasyToConvince": "extremely_high",
+  "pointsRequired": 10
+},
+"relationships": {
+    "dealBreakers": [],
+    "friend": "RANDOM_AT_START:secretFriend",
+    "secretRespect": null
+  },
+  "secretFriendOverride": {
+    "effects": {
+      "difficultyBonusPoints": 3,
+      "rumorAccuracyReduction": 10,
+      "applyAccuracyReductionWhen": "spread_only",
+      "addTags": ["JULIO_SECRET_FRIEND"]
+    }
+  },
+  "intelNetwork": {
+    "enabled": true,
+    "autoLearnRumorChance": 0.3
+  },
+  "endings": {
+    "canTriggerGoosePartyEnding": true
+  }
+},
+
+{
+  "id": "npc_amy",
+  "class": "Npc",
+  "name": "Amy",
+  "role": "Decorations + Shirts",
+  "oneLineVibe": "like a squirrel on caffeine",
+  "coreTraits": ["constantly stressed", "over-panicked", "perfectionist"],
+
+  "tasks": {
+    "publicTasks": [
+      "Make shirts for everyone (needs to learn 2 NPC outfit requirements).",
+      "Set up all decorations."
+    ],
+    "dependencies": [
+      {
+        "type": "info",
+        "requiresFromNpcCount": 2,
+        "requires": "outfit requirements"
+      }
+    ]
+  },
+
+  "pressurePoints": {
+    "fearsOrPressurePoint": "If the event goes haywire or no one shows up.",
+    "whatMakesHerFold": "Strong signs the party will fail or people won't attend."
+  },
+
+  "goals": {
+    "whatTheyWantFromDuckParty": "The perfect event.",
+    "mayorGoalForThem": "Give everyone outfits and set up decorations properly."
+  },
+
+  "relationships": {
+    "dealBreakers": ["npc_hans"],
+    "friends": ["npc_sheldon", "npc_peta"],
+    "disliked_ppl": ["npc_leonard"],
+    "secretRespect": [],
+    "notes": [
+      "Suspicious of Leonard's niceness.",
+      "Likes the coder; historian is oddly nice to her."
+    ]
+  },
+
+  "secrets": {
+    "mildSecret": "She thinks this is going to be the last DuckParty ever!",
+    "spicySafeSecret": "She likes the coder (Sheldon).",
+    "secretTaskHidden": null
+  },
+
+  "rumorBehavior": {
+    "spreadsRumors": true,
+    "accuracyMinPercent": 40,
+    "accuracyMaxPercent": 60,
+    "talksToAtLeast": 2,
+    "spreadStyle": "anxious-over-sharing"
+  },
+
+  "speechStyle": {
+    "tone": "jittery, frantic",
+    "length": "medium",
+    "catchphrasesOrTicks": []
+  },
+
+  "difficulty": {
+    "howEasyToConvince": "medium",
+    "pointsRequired": 4
+  }
+},
+
+{
+  "id": "npc_hans",
+  "class": "Npc",
+  "name": "Hans",
+  "role": "Baker",
+  "oneLineVibe": "a stubborn older man",
+  "coreTraits": ["set in his ways", "stubborn and mean", "sometimes wise"],
+
+  "tasks": {
+    "publicTasks": [
+      "Make the food for the event."
+    ],
+    "dependencies": []
+  },
+
+  "pressurePoints": {
+    "fearsOrPressurePoint": "He acts tough but wants people to like him.",
+    "whatMakesHimFold": "Feeling genuinely appreciated for his cooking or being publicly embarrassed about it."
+  },
+
+  "goals": {
+    "whatTheyWantFromDuckParty": "People to like his food.",
+    "mayorGoalForThem": "Make good food for the party."
+  },
+
+  "relationships": {
+    "dealBreakers": [],
+    "friends": ["npc_olaf", "npc_peta"],
+    "disliked_ppl": ["npc_vince", "npc_patrica", "npc_sheldon", "npc_amy"],
+    "secretRespect": [],
+    "notes": [
+      "He is not well-liked for being old and mean.",
+      "Historian (Peta) likes him because they are both older / work-buddy energy."
+    ]
+  },
+
+  "secrets": {
+    "mildSecret": "He has a secret cookbook with his recipes.",
+    "spicySafeSecret": "He has a secret ingredient that makes everyone he doesn’t like throw up.",
+    "secretTaskHidden": null
+  },
+
+  "rumorBehavior": {
+    "spreadsRumors": true,
+    "accuracyMinPercent": 50,
+    "accuracyMaxPercent": 90,
+    "talksToAtLeast": 0,
+    "spreadStyle": "reluctant-gossip",
+    "notes": "Doesn’t talk much, but if pushed he will share."
+  },
+
+  "speechStyle": {
+    "tone": "gruff old-person speak",
+    "length": "short",
+    "catchphrasesOrTicks": []
+  },
+
+  "difficulty": {
+    "howEasyToConvince": "high",
+    "pointsRequired": 6
+  }
+},
+
+{
+  "id": "npc_leonard",
+  "class": "Npc",
+  "name": "Leonard",
+  "role": "Nice Guard / Safety",
+  "oneLineVibe": "like the nice version of the cop from the Lego movie",
+  "coreTraits": ["nice", "chatty", "chill guy"],
+
+  "tasks": {
+    "publicTasks": [
+      "Ask if people’s tasks are safe.",
+      "Create a safety presentation."
+    ],
+    "dependencies": [
+      {
+        "type": "coordination",
+        "withNpcId": "npc_olaf",
+        "description": "Works alongside Olaf on safety checks and presentation."
+      }
+    ]
+  },
+
+  "pressurePoints": {
+    "fearsOrPressurePoint": "Pressure from his partner (Olaf).",
+    "whatMakesHimFold": "Being pushed by Olaf to act tougher or pick a side."
+  },
+
+  "goals": {
+    "whatTheyWantFromDuckParty": "A safe event.",
+    "mayorGoalForThem": "Keep the event safe and make good presentations."
+  },
+
+  "relationships": {
+    "dealBreakers": [],
+    "friends": ["npc_olaf"],
+    "disliked_ppl": [],
+    "secretRespect": [],
+    "notes": [
+      "Doesn’t care much about people who don’t like him (unless they are part of his secret).",
+      "Niceness is partly strategic: he tries to make people drop their guard."
+    ]
+  },
+
+  "secrets": {
+    "mildSecret": "He is nice to make people drop their guards around him.",
+    "spicySafeSecret": "He secretly doesn’t like one random person, but tries to hide it.",
+    "secretTaskHidden": null
+  },
+
+  "rumorBehavior": {
+    "spreadsRumors": true,
+    "accuracyMinPercent": 40,
+    "accuracyMaxPercent": 60,
+    "talksToAtLeast": 2,
+    "spreadStyle": "friendly-chatter",
+    "notes": "Talks to a lot of people; rumors tend to spread widely through him."
+  },
+
+  "speechStyle": {
+    "tone": "polite, people-pleaser",
+    "length": "medium",
+    "catchphrasesOrTicks": []
+  },
+
+  "difficulty": {
+    "howEasyToConvince": "low",
+    "pointsRequired": 2
+  }
+},
+
+{
+  "id": "npc_olaf",
+  "class": "Npc",
+  "name": "Olaf",
+  "role": "Mean Guard / Safety",
+  "oneLineVibe": "like the mean version of the cop from the Lego movie",
+  "coreTraits": ["strict", "demanding", "firm"],
+
+  "tasks": {
+    "publicTasks": [
+      "Ask if people’s tasks are safe.",
+      "Create a safety presentation."
+    ],
+    "dependencies": [
+      {
+        "type": "coordination",
+        "withNpcId": "npc_leonard",
+        "description": "Works alongside Leonard on safety checks and presentation."
+      }
+    ]
+  },
+
+  "pressurePoints": {
+    "fearsOrPressurePoint": "No one being scared of him.",
+    "whatMakesHimFold": "Being openly disrespected or laughed at."
+  },
+
+  "goals": {
+    "whatTheyWantFromDuckParty": "Everyone follows the mayor’s instructions.",
+    "mayorGoalForThem": "Keep the event safe and make good presentations."
+  },
+
+  "relationships": {
+    "dealBreakers": ["npc_vince"],
+    "friends": ["npc_leonard"],
+    "disliked_ppl": ["npc_patrica"],
+    "secretRespect": ["npc_hans"],
+    "notes": [
+      "Sees through Patrica’s fake niceness.",
+      "Both Olaf and Hans are a little mean, which Olaf respects."
+    ]
+  },
+
+  "secrets": {
+    "mildSecret": "He likes girly pop music.",
+    "spicySafeSecret": "He is scared of Julio (the rival event organizer).",
+    "secretTaskHidden": null
+  },
+
+  "rumorBehavior": {
+    "spreadsRumors": true,
+    "accuracyMinPercent": 40,
+    "accuracyMaxPercent": 60,
+    "talksToAtLeast": 2,
+    "spreadStyle": "warning-and-enforcement",
+    "notes": "Talks to a lot of people; tends to spread rumors as 'alerts' or 'warnings'."
+  },
+
+  "speechStyle": {
+    "tone": "short and blunt",
+    "length": "short",
+    "catchphrasesOrTicks": []
+  },
+
+  "difficulty": {
+    "howEasyToConvince": "high",
+    "pointsRequired": 6
+  }
+},
+
+{
+  "id": "npc_vince",
+  "class": "Npc",
+  "name": "Vince",
+  "role": "Musician",
+  "oneLineVibe": "gen-z rock/alt vibe",
+  "coreTraits": ["doesn't like authority", "likes music", "a little naive"],
+
+  "tasks": {
+    "publicTasks": [
+      "Make a song for the Duck Party."
+    ],
+    "dependencies": []
+  },
+
+  "pressurePoints": {
+    "fearsOrPressurePoint": "Being controlled or silenced.",
+    "whatMakesHimFold": "Being publicly embarrassed or creatively shut down."
+  },
+
+  "goals": {
+    "whatTheyWantFromDuckParty": "Use the event as a platform to criticize authority.",
+    "mayorGoalForThem": "Make a friendly show everyone enjoys."
+  },
+
+  "relationships": {
+    "dealBreakers": ["npc_hans"],
+    "friends": ["npc_sheldon"],
+    "disliked_ppl": ["npc_kwa", "npc_olaf"],
+    "secretRespect": ["npc_patrica"],
+    "notes": [
+      "Doesn’t like authority figures.",
+      "Admires Patrica’s boldness and gossip energy."
+    ]
+  },
+
+  "secrets": {
+    "mildSecret": "He knows Patrica is a major gossiper.",
+    "spicySafeSecret": "He wants to play a song insulting the mayor and authority figures.",
+    "secretTaskHidden": null
+  },
+
+  "rumorBehavior": {
+    "spreadsRumors": true,
+    "accuracyMinPercent": 40,
+    "accuracyMaxPercent": 90,
+    "talksToAtLeast": 2,
+    "spreadStyle": "dramatic-and-exaggerated",
+    "notes": "Enjoys talking about drama and stirring reactions."
+  },
+
+  "speechStyle": {
+    "tone": "nonchalant, sarcastic",
+    "length": "medium",
+    "catchphrasesOrTicks": []
+  },
+
+  "difficulty": {
+    "howEasyToConvince": "high",
+    "pointsRequired": 6
+  }
+},
+
+{
+  "id": "npc_patrica",
+  "class": "Npc",
+  "name": "Patrica",
+  "role": "Gossip / Social Hub",
+  "oneLineVibe": "nice, but loves to talk (wine mom energy)",
+  "coreTraits": [
+    "innocent talker",
+    "brash opinions",
+    "unfunny personal jokes"
+  ],
+
+  "tasks": {
+    "publicTasks": [
+      "Talk to at least 2 characters (besides the player) and spread rumors."
+    ],
+    "dependencies": []
+  },
+
+  "pressurePoints": {
+    "fearsOrPressurePoint": "Being told she’s annoying directly or being confronted with truth that breaks her viewpoint.",
+    "whatMakesHerFold": "Direct blunt rejection or being called out in a way she can’t spin."
+  },
+
+  "goals": {
+    "whatTheyWantFromDuckParty": "More gossip and drama (implicitly to spread more lies).",
+    "mayorGoalForThem": "Talk to as few characters as possible."
+  },
+
+  "relationships": {
+    "dealBreakers": ["npc_olaf", "npc_hans"],
+    "friends": ["npc_leonard"],
+    "disliked_ppl": [],
+    "secretRespect": ["npc_vince"],
+    "notes": [
+      "Leonard listens to her, which she loves.",
+      "She clashes with Olaf because he shuts down her gossip."
+    ]
+  },
+
+  "secrets": {
+    "mildSecret": "The musician (Vince) is her child.",
+    "spicySafeSecret": "She knows a random character’s spicy secret (not Julio’s).",
+    "secretTaskHidden": null
+  },
+
+  "rumorBehavior": {
+    "spreadsRumors": true,
+    "accuracyMinPercent": 30,
+    "accuracyMaxPercent": 50,
+    "talksToAtLeast": 2,
+    "spreadStyle": "dramatic-twist",
+    "notes": "Frequently retells only part of the story and adds her own spin."
+  },
+
+  "speechStyle": {
+    "tone": "dramatic, chatty",
+    "length": "long",
+    "catchphrasesOrTicks": [
+      "Well you know how it is…",
+      "I absolutely love how you…"
+    ]
+  },
+
+  "difficulty": {
+    "howEasyToConvince": "medium",
+    "pointsRequired": 4
+  }
+},
+
+{
+  "id": "npc_peta",
+  "class": "Npc",
+  "name": "Peta",
+  "role": "Duck Superfan / Historian",
+  "oneLineVibe": "super fan of ducks and town history",
+  "coreTraits": ["obsessive", "knows town history"],
+
+  "tasks": {
+    "publicTasks": [
+      "Work on a duck-themed event element (history booth / tradition display)."
+    ],
+    "dependencies": [
+      {
+        "type": "social",
+        "description": "Coordinates with the merch person for materials or props.",
+        "withNpcId": "npc_amy"
+      }
+    ]
+  },
+
+  "pressurePoints": {
+    "fearsOrPressurePoint": "The merch person (npc_amy).",
+    "whatMakesHimFold": "Rejection or disapproval from Amy strongly affects him."
+  },
+
+  "goals": {
+    "whatTheyWantFromDuckParty": "Make people like ducks as much as he does.",
+    "mayorGoalForThem": "Prevent him from going overboard with the duck theme."
+  },
+
+  "relationships": {
+    "dealBreakers": [],
+    "friends": ["npc_hans", "npc_amy"],
+    "disliked_ppl": ["npc_sheldon", "npc_leonard"],
+    "secretRespect": []
+  },
+
+  "secrets": {
+    "mildSecret": {
+      "description": "He knows 1–2 random NPC mild secrets.",
+      "randomCount": {
+        "min": 1,
+        "max": 2
+      },
+      "targets": [
+        "RANDOM_AT_START:petaMildSecretTarget1",
+        "RANDOM_AT_START:petaMildSecretTarget2"
+      ],
+      "excludeNpcIds": ["npc_julio", "npc_kwa", "npc_peta"]
+    },
+    "spicySafeSecret": "He likes Amy romantically.",
+    "secretTaskHidden": null
+  },
+
+  "rumorBehavior": {
+    "spreadsRumors": true,
+    "accuracyMinPercent": 70,
+    "accuracyMaxPercent": 90,
+    "talksToAtLeast": 1,
+    "spreadStyle": "facts-and-lore",
+    "notes": "Doesn’t talk to many people besides Amy, but when he does, he’s usually accurate."
+  },
+
+  "speechStyle": {
+    "tone": "frantic, excited",
+    "length": "long",
+    "catchphrasesOrTicks": []
+  },
+
+  "difficulty": {
+    "howEasyToConvince": "medium",
+    "pointsRequired": 4
+  }
+},
+
+{
+  "id": "npc_sheldon",
+  "class": "Npc",
+  "name": "Sheldon",
+  "role": "Coder / Presenter",
+  "oneLineVibe": "pedantic nerd who is in love with the sound of his own voice",
+  "coreTraits": ["thinks he's smarter than everyone else", "nerdy", "isolated"],
+
+  "tasks": {
+    "publicTasks": [
+      "Program and present something at the Duck Party."
+    ],
+    "dependencies": []
+  },
+
+  "pressurePoints": {
+    "fearsOrPressurePoint": "Being contradicted or proven wrong.",
+    "whatMakesHimFold": "Being corrected with clear evidence or publicly outsmarted."
+  },
+
+  "goals": {
+    "whatTheyWantFromDuckParty": "Have a good presentation but not do a lot of work.",
+    "mayorGoalForThem": "Make a cool program/presentation."
+  },
+
+  "relationships": {
+    "dealBreakers": ["npc_hans"],
+    "friends": ["npc_amy", "npc_vince"],
+    "disliked_ppl": [],
+    "secretRespect": [],
+    "notes": [
+      "Acts isolated but likes being around people who feel similarly stressed (Amy).",
+      "Gets along with Vince because they’re both young and a bit cynical."
+    ]
+  },
+
+  "secrets": {
+    "mildSecret": "Prefers using Gemini instead of actually coding.",
+    "spicySafeSecret": "Pretends not to like gossip but actually does.",
+    "secretTaskHidden": null
+  },
+
+  "rumorBehavior": {
+    "spreadsRumors": true,
+    "accuracyMinPercent": 50,
+    "accuracyMaxPercent": 80,
+    "talksToAtLeast": 1,
+    "spreadStyle": "pedantic-reframe",
+    "notes": "He retells rumors like they're 'observations' and loves sounding correct."
+  },
+
+  "speechStyle": {
+    "tone": "polite but tired (slightly smug)",
+    "length": "medium",
+    "catchphrasesOrTicks": []
+  },
+
+  "difficulty": {
+    "howEasyToConvince": "low",
+    "pointsRequired": 2
+  }
+}
+]
+
