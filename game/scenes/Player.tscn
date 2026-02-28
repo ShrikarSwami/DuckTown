@@ -9,6 +9,7 @@ size = Vector2(10, 6)
 [node name="PlayerRoot" type="Node" unique_id=2041773753]
 
 [node name="Player" type="CharacterBody2D" parent="." unique_id=1965973080]
+position = Vector2(800, 450)
 script = ExtResource("1_v6fml")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Player" unique_id=540646384]
@@ -20,5 +21,5 @@ debug_color = Color(0.85710603, 0.31327614, 0.48013282, 0.41960785)
 texture_filter = 1
 texture = ExtResource("1_p0vlq")
 
-[node name="Camera2D" type="Camera2D" parent="." unique_id=883490827]
+[node name="Camera2D" type="Camera2D" parent="Player" unique_id=883490827]
 zoom = Vector2(2, 2)
