@@ -1,5 +1,31 @@
 [gd_scene format=3 uid="uid://c4cfqlf3rwees"]
 
-[node name="Npc" type="Node" unique_id=440618083]
+[ext_resource type="Script" uid="uid://dkdg0y5y4d8wi" path="res://scenes/npc.gd" id="1_6xvi5"]
+[ext_resource type="Texture2D" uid="uid://rcwoe1limwwd" path="res://assets/sprites/characters/Characters/Baker_Character.png" id="2_ktgr7"]
 
-[node name="CharacterBody2D" type="CharacterBody2D" parent="." unique_id=8262334]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_jnjht"]
+size = Vector2(10, 7)
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_7pv12"]
+radius = 30.0
+
+[node name="Npc" type="Node" unique_id=440618083]
+script = ExtResource("1_6xvi5")
+
+[node name="NPC" type="CharacterBody2D" parent="." unique_id=8262334]
+scale = Vector2(2.5, 2.5)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="NPC" unique_id=2062374654]
+position = Vector2(0, 8.5)
+shape = SubResource("RectangleShape2D_jnjht")
+
+[node name="Node2D" type="Node2D" parent="NPC" unique_id=1015060391]
+
+[node name="Sprite2D" type="Sprite2D" parent="NPC/Node2D" unique_id=1968416017]
+texture = ExtResource("2_ktgr7")
+
+[node name="InteractArea" type="Area2D" parent="NPC" unique_id=1275081626]
+collision_layer = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="NPC/InteractArea" unique_id=809746891]
+shape = SubResource("CircleShape2D_7pv12")
