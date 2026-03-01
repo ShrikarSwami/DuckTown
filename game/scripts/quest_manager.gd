@@ -3,19 +3,20 @@ extends Node
 
 const VERBOSE_DEBUG := false
 
-class Approval:
-	var npc_id: String
-	var npc_name: String
-	var is_approved: bool = false
-	var required_trust: int = 15  # Trust >= 15 to approve
-	var quest_type: String  # "food", "decorations", "safety"
-	
-	func _init(p_id: String, p_name: String, p_type: String):
-		npc_id = p_id
-		npc_name = p_name
-		quest_type = p_type
+# SINGLE SOURCE OF TRUTH: Boolean approval dictionary
+var approvals: Dictionary = {
+	"baker": false,
+	"merch": false,
+	"meanGuard": false
+}
 
-var approvals: Dictionary = {}  # npc_id -> Approval
+# NPC metadata for display and trust thresholds
+var _npc_metadata: Dictionary = {
+	"baker": {"name": "Baker", "quest_type": "food", "required_trust": 15},
+	"merch": {"name": "Merch", "quest_type": "decorations", "required_trust": 15},
+	"meanGuard": {"name": "Mean Guard", "quest_type": "safety", "required_trust": 15}
+}
+
 var all_approvals_met: bool = false
 var _party_triggered_once: bool = false
 
@@ -54,13 +55,7 @@ signal demo_phase_changed(new_phase: int)
 var npc_interactions: Dictionary = {}  # npc_id -> npc_interaction node
 
 func _ready():
-	# Define the 3 approval gates
-	approvals["baker"] = Approval.new("baker", "Baker", "food")
-	approvals["merch"] = Approval.new("merch", "Merch", "decorations")
-	approvals["meanGuard"] = Approval.new("meanGuard", "Mean Guard", "safety")
-	
-	if VERBOSE_DEBUG:
-		print("[QuestManager] Initialized with 3 approval gates")
+	print("[QuestManager] Initialized with 3 approval gates")
 	
 	# Find NPC interaction nodes (deferred to let Main.gd create them first)
 	call_deferred("_find_npc_interactions")
@@ -88,32 +83,40 @@ func _find_npc_interactions() -> void:
 					print("[QuestManager] Connected directly to NPC %s" % npc_id)
 
 func _on_npc_relationship_changed(npc_id: String, new_value: int, delta: int):
-	"""Called when an NPC's relationship changes"""
+	"""Called when an NPC's relationship changes - check if approval threshold is met"""
 	
-	# Check each approval gate
-	for approval_id in approvals.keys():
-		var approval = approvals[approval_id]
-		if approval.npc_id == npc_id:
-			# Check if they've reached the approval threshold
-			var was_approved = approval.is_approved
-			approval.is_approved = (new_value >= approval.required_trust)
-			
-			if approval.is_approved and not was_approved:
-				print("[QuestManager] %s approved! (trust: %d)" % [approval.npc_name, new_value])
-				_sync_demo_approval_flag(npc_id, true)
-				if npc_id == "baker" or npc_id == "merch" or npc_id == "meanGuard":
-					print("[VERIFY] %s approval reached in demo ease mode" % npc_id)
-				approval_changed.emit(npc_id, true)
-				approvals_changed.emit(npc_id, true)
-				_emit_approvals_updated()
-				_check_all_approvals()
-			elif not approval.is_approved and was_approved:
-				print("[QuestManager] %s approval lost! (trust: %d)" % [approval.npc_name, new_value])
-				_sync_demo_approval_flag(npc_id, false)
-				approval_changed.emit(npc_id, false)
-				approvals_changed.emit(npc_id, false)
-				_emit_approvals_updated()
-				all_approvals_met = false
+	# Only track the 3 main NPCs
+	if not approvals.has(npc_id):
+		return
+	
+	var metadata = _npc_metadata.get(npc_id, {})
+	var npc_name = metadata.get("name", npc_id)
+	var required_trust = metadata.get("required_trust", 15)
+	
+	# Check if they've reached the approval threshold
+	var was_approved = approvals[npc_id]
+	var is_now_approved = (new_value >= required_trust)
+	
+	# Only update if state changed
+	if is_now_approved != was_approved:
+		approvals[npc_id] = is_now_approved
+		
+		if is_now_approved:
+			print("[QuestManager] %s approved! (trust: %d >= %d)" % [npc_name, new_value, required_trust])
+			print("[QuestManager] approval_changed %s=true" % npc_id)
+			_sync_demo_approval_flag(npc_id, true)
+		else:
+			print("[QuestManager] %s approval lost! (trust: %d < %d)" % [npc_name, new_value, required_trust])
+			print("[QuestManager] approval_changed %s=false" % npc_id)
+			_sync_demo_approval_flag(npc_id, false)
+		
+		# Emit signals
+		approval_changed.emit(npc_id, is_now_approved)
+		approvals_changed.emit(npc_id, is_now_approved)
+		_emit_approvals_updated()
+		
+		# Check if all approvals are now met
+		_check_all_approvals()
 
 func _sync_demo_approval_flag(npc_id: String, is_approved: bool) -> void:
 	"""Keep demo flag aliases aligned with trust-threshold approvals."""
@@ -127,12 +130,9 @@ func _sync_demo_approval_flag(npc_id: String, is_approved: bool) -> void:
 
 func _emit_approvals_updated() -> void:
 	"""Emit the approvals_updated signal with current approval states"""
-	var baker_approval: Approval = approvals.get("baker") as Approval
-	var merch_approval: Approval = approvals.get("merch") as Approval
-	var mean_guard_approval: Approval = approvals.get("meanGuard") as Approval
-	var baker_ok: bool = baker_approval != null and baker_approval.is_approved
-	var merch_ok: bool = merch_approval != null and merch_approval.is_approved
-	var mean_guard_ok: bool = mean_guard_approval != null and mean_guard_approval.is_approved
+	var baker_ok: bool = approvals.get("baker", false)
+	var merch_ok: bool = approvals.get("merch", false)
+	var mean_guard_ok: bool = approvals.get("meanGuard", false)
 	var count = get_approval_progress()
 	
 	approvals_updated.emit(baker_ok, merch_ok, mean_guard_ok, count)
@@ -141,17 +141,19 @@ func _emit_approvals_updated() -> void:
 
 func _check_all_approvals() -> void:
 	"""Check if all 3 required approvals are met."""
-	var baker_approval: Approval = approvals.get("baker") as Approval
-	var merch_approval: Approval = approvals.get("merch") as Approval
-	var mean_guard_approval: Approval = approvals.get("meanGuard") as Approval
-	var baker_ok: bool = baker_approval != null and baker_approval.is_approved
-	var merch_ok: bool = merch_approval != null and merch_approval.is_approved
-	var mean_guard_ok: bool = mean_guard_approval != null and mean_guard_approval.is_approved
+	var baker_ok: bool = approvals.get("baker", false)
+	var merch_ok: bool = approvals.get("merch", false)
+	var mean_guard_ok: bool = approvals.get("meanGuard", false)
 	var all_met: bool = baker_ok and merch_ok and mean_guard_ok
+
+	print("[QuestManager] all approvals met = %s (baker=%s, merch=%s, meanGuard=%s)" % [
+		all_met, baker_ok, merch_ok, mean_guard_ok
+	])
 
 	if all_met and not all_approvals_met:
 		all_approvals_met = true
 		print("[DemoPhase] ✨ ALL APPROVALS MET! Party unlock!")
+		print("[PartyFlow] Approvals detected: baker=%s merch=%s meanGuard=%s" % [baker_ok, merch_ok, mean_guard_ok])
 		all_approvals_met_signal.emit()
 		_trigger_party_once()
 	elif not all_met:
@@ -160,40 +162,55 @@ func _check_all_approvals() -> void:
 func _trigger_party_once() -> void:
 	"""Single-fire transition to Party scene when all approvals are met."""
 	if _party_triggered_once:
-		if VERBOSE_DEBUG:
-			print("[QuestManager] Victory already triggered, ignoring duplicate call")
+		print("[PartyFlow] Already triggered, ignoring duplicate call")
 		return
 
+	# Check if this was triggered by debug shortcut
+	var main_node = get_tree().root.get_node_or_null("Main/Main")
+	if main_node == null:
+		main_node = get_tree().current_scene
+	var is_debug_trigger: bool = false
+	if main_node != null and main_node.get("debug_party_triggered") == true:
+		is_debug_trigger = true
+		print("[PartyFlow] debug trigger activated")
+	
+	print("[PartyFlow] ⭐ All approvals met, starting party transition")
 	_party_triggered_once = true
 
+	# Close dialogue UI if open
 	for dialogue_ui in get_tree().get_nodes_in_group("dialogue_ui"):
 		if dialogue_ui != null and dialogue_ui.has_method("close"):
+			print("[PartyFlow] Closing dialogue UI")
 			dialogue_ui.close()
 			break
 
-	print("[VERIFY] All approvals met -> changing to Party scene")
+	# Disable player input to prevent interference
+	var player_nodes := get_tree().get_nodes_in_group("player")
+	for player in player_nodes:
+		if player.has_method("set_process_input"):
+			player.set_process_input(false)
+			print("[PartyFlow] Disabled player input")
+
+	print("[PartyFlow] 🎉 Changing scene to Party.tscn")
+	print("[PartyFlow] changing scene to Party.tscn")
 	party_triggered.emit()
 
-	var err := get_tree().change_scene_to_file("res://scenes/Party.tscn")
+	var party_scene_path := "res://scenes/Party.tscn"
+	print("[PartyFlow] Scene path being used: %s" % party_scene_path)
+	var err := get_tree().change_scene_to_file(party_scene_path)
 	if err != OK:
-		push_error("[QuestManager] Failed to load Party scene")
+		push_error("[PartyFlow] ❌ Failed to load Party scene at '%s' - Error: %d" % [party_scene_path, err])
 		_party_triggered_once = false
+	else:
+		print("[PartyFlow] Scene change initiated successfully")
 
 func trigger_victory() -> void:
 	"""Compatibility wrapper for previous callers."""
 	_trigger_party_once()
 
-func get_approval(npc_id: String) -> Approval:
-	"""Get approval status for an NPC"""
-	for approval in approvals.values():
-		if approval.npc_id == npc_id:
-			return approval
-	return null
-
 func is_approved(npc_id: String) -> bool:
-	"""Check if a specific NPC has approved"""
-	var approval = get_approval(npc_id)
-	return approval != null and approval.is_approved
+	"""Check if a specific NPC has approved - ONLY uses stored approval booleans"""
+	return approvals.get(npc_id, false)
 
 func get_all_approvals() -> Dictionary:
 	"""Get all approval statuses"""
@@ -202,32 +219,37 @@ func get_all_approvals() -> Dictionary:
 func get_approval_progress() -> int:
 	"""Return number of approvals obtained (0-3)"""
 	var count = 0
-	for approval in approvals.values():
-		if approval.is_approved:
+	for is_approved in approvals.values():
+		if is_approved:
 			count += 1
 	return count
 
 func get_open_task_descriptions() -> Array[String]:
 	"""Return readable task descriptions for incomplete approvals"""
 	var tasks: Array[String] = []
-	for approval in approvals.values():
-		if not approval.is_approved:
-			tasks.append("Earn %s approval for %s" % [approval.npc_name, approval.quest_type])
+	for npc_id in approvals.keys():
+		if not approvals[npc_id]:
+			var metadata = _npc_metadata.get(npc_id, {})
+			var npc_name = metadata.get("name", npc_id)
+			var quest_type = metadata.get("quest_type", "task")
+			tasks.append("Earn %s approval for %s" % [npc_name, quest_type])
 	return tasks
 
 func get_completed_task_descriptions() -> Array[String]:
 	"""Return readable task descriptions for completed approvals"""
 	var tasks: Array[String] = []
-	for approval in approvals.values():
-		if approval.is_approved:
-			tasks.append("%s approval secured" % approval.npc_name)
+	for npc_id in approvals.keys():
+		if approvals[npc_id]:
+			var metadata = _npc_metadata.get(npc_id, {})
+			var npc_name = metadata.get("name", npc_id)
+			tasks.append("%s approval secured" % npc_name)
 	return tasks
 
 func get_focus_npc_ids() -> Array[String]:
 	"""Return current focus NPC ids for this demo configuration"""
 	var ids: Array[String] = []
-	for approval in approvals.values():
-		ids.append(approval.npc_id)
+	for npc_id in approvals.keys():
+		ids.append(npc_id)
 	return ids
 
 func get_demo_phase() -> int:
@@ -322,7 +344,7 @@ func process_demo_player_message(npc_id: String, player_message: String) -> Dict
 
 	# Phase 0: Baker must agree to help and ask about cake type
 	if demo_phase == 0 and npc_id == "baker":
-		if text.find("help") != -1 and text.find("party") != -1:
+		if text.find("party") != -1 or text.find("cater") != -1 or text.find("help") != -1:
 			_demo_flags["baker_help_requested"] = true
 			outcome["is_scripted_turn"] = true
 			outcome["script_instruction"] = "YOU MUST: (1) Eagerly agree to help with party food. (2) Ask what type of cake they want. Be warm and helpful. Keep response under 160 chars."

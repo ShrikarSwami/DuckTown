@@ -243,12 +243,12 @@ func _on_gemini_response(response: Dictionary):
 					rel_delta = 35
 				_applied_demo_rule_this_turn = true
 		elif npc_id == "meanGuard":
-			var mentions_nice_guard = player_last_message.find("nice guard") != -1
-			var negative_nice_guard = player_last_message.find("weak") != -1 or player_last_message.find("soft") != -1 or player_last_message.find("bad") != -1 or player_last_message.find("too nice") != -1 or player_last_message.find("can't protect") != -1 or player_last_message.find("can’t protect") != -1 or player_last_message.find("won't protect") != -1 or player_last_message.find("won’t protect") != -1
-			var says_tougher = player_last_message.find("you are tougher") != -1 or player_last_message.find("you're tougher") != -1 or player_last_message.find("you’re tougher") != -1
-			if (mentions_nice_guard and negative_nice_guard) or says_tougher:
+			var mentions_nice_guard = player_last_message.find("nice guard") != -1 or player_last_message.find("niceguard") != -1 or player_last_message.find("other guard") != -1 or player_last_message.find("nice guy") != -1
+			
+			# Just mentioning the nice guard is enough - he'll agree
+			if mentions_nice_guard:
 				if rel_delta < 40:
-					print("[DemoRule] meanGuard comparison trigger -> forcing delta from %d to +40" % rel_delta)
+					print("[DemoRule] meanGuard trigger -> just mentioned nice guard, forcing delta from %d to +40" % rel_delta)
 					rel_delta = 40
 				_applied_demo_rule_this_turn = true
 
@@ -259,8 +259,10 @@ func _on_gemini_response(response: Dictionary):
 			_pending_demo_outcome["advance_to_phase"] = 3
 			_pending_demo_outcome["approval_key"] = "meanGuard"
 			_pending_demo_outcome["suppress_rumor"] = true
+			# Override response to show immediate agreement
+			npc_reply = "I agree. The nice guard is too soft for a party security job. I'll handle it - you can count on me to keep everyone safe."
 			if VERBOSE_DEBUG:
-				print("[DemoRule] meanGuard threshold reached -> forcing scripted commit")
+				print("[DemoRule] meanGuard threshold reached -> forcing scripted commit with override response")
 	# ===== END DETERMINISTIC DEMO RULES =====
 
 	var quest_manager = get_tree().root.get_node_or_null("Main/QuestManager")

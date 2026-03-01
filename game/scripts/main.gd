@@ -17,6 +17,9 @@ const PARTY_AUDIO_CANDIDATE_PATHS: Array[String] = [
 # Demo run tracking
 var demo_run_count: int = 0
 
+# Debug shortcut state
+var debug_party_triggered: bool = false
+
 func _ready():
 	print("\n🦆 DuckTown Starting...\n")
 	_preload_party_media()
@@ -87,8 +90,37 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 
 	var key_event := event as InputEventKey
+	
+	# F9 - Print debug status
 	if key_event.pressed and not key_event.echo and key_event.keycode == KEY_F9:
 		_print_demo_status_snapshot()
+	
+	# KEY_9 - Trigger party victory (debug only)
+	if key_event.pressed and not key_event.echo and key_event.keycode == KEY_9:
+		_debug_trigger_party()
+
+func _debug_trigger_party() -> void:
+	"""Debug shortcut to manually trigger the party scene"""
+	if debug_party_triggered:
+		print("[DEBUG] Party already triggered, ignoring key 9")
+		return
+	
+	print("[DEBUG] Manual party trigger (key 9 pressed)")
+	debug_party_triggered = true
+	
+	# Get quest manager and call the party trigger function
+	var quest_manager = get_node_or_null("QuestManager")
+	if quest_manager == null:
+		push_error("[DEBUG] QuestManager not found, cannot trigger party")
+		debug_party_triggered = false
+		return
+	
+	if quest_manager.has_method("_trigger_party_once"):
+		print("[DEBUG] Calling QuestManager._trigger_party_once()")
+		quest_manager._trigger_party_once()
+	else:
+		push_error("[DEBUG] QuestManager._trigger_party_once() method not found")
+		debug_party_triggered = false
 
 func _print_demo_status_snapshot() -> void:
 	var player_name := "Player"

@@ -31,25 +31,46 @@ var _selected_audio_path: String = ""
 var _play_external_audio: bool = false
 
 func _ready():
-	print("🎉 PARTY SCENE LOADED!")
+	print("="*60)
+	print("[PartyScene] 🎉 PARTY SCENE _ready() CALLED")
+	
+	# Check if triggered by debug shortcut
+	var main_node = get_tree().root.get_node_or_null("Main/Main")
+	if main_node == null:
+		# Try to find Main scene in tree
+		for node in get_tree().root.get_children():
+			if node.name == "Main" or node.get_script() != null and "main.gd" in str(node.get_script().resource_path).to_lower():
+				main_node = node
+				break
+	if main_node != null and main_node.get("debug_party_triggered") == true:
+		print("[PartyScene] ready from debug trigger")
+	
+	print("[PartyScene] Node tree: overlay=%s video=%s audio=%s fade=%s" % [
+		video_overlay != null, video_player != null, party_audio != null, fade_overlay != null
+	])
+	
 	if fade_overlay != null:
 		fade_overlay.color = Color(0, 0, 0, 0)
 		fade_overlay.show()
+		print("[PartyScene] Fade overlay initialized")
 
+	print("[PartyScene] Starting victory video sequence")
 	if not await _fade_then_play_victory_video():
-		print("[PartyScene] Falling back to timed restart")
+		print("[PartyScene] ⚠️ Video playback failed, falling back to timed restart")
 		await get_tree().create_timer(3.0).timeout
 		_restart_demo()
+	else:
+		print("[PartyScene] ✅ Victory video playback initiated successfully")
 
 
 func _fade_then_play_victory_video() -> bool:
 	if fade_overlay != null:
-		if VERBOSE_DEBUG:
-			print("[PartyScene] Fade start")
+		print("[PartyScene] Starting fade to black (%.1fs)" % PRE_VIDEO_FADE_DURATION)
 		var fade_tween := create_tween()
 		fade_tween.set_process_mode(Tween.TWEEN_PROCESS_IDLE)
 		fade_tween.tween_property(fade_overlay, "color", Color(0, 0, 0, 1), PRE_VIDEO_FADE_DURATION)
 		await fade_tween.finished
+		print("[PartyScene] Fade complete, starting video")
 
 	return _play_victory_video()
 
@@ -72,16 +93,23 @@ func _play_celebration() -> void:
 
 
 func _play_victory_video() -> bool:
+	print("[PartyScene] _play_victory_video() called")
+	
 	if video_player == null or video_overlay == null or party_audio == null:
-		push_warning("[PartyScene] Video player nodes missing")
+		push_error("[PartyScene] ❌ Critical nodes missing: video_player=%s overlay=%s audio=%s" % [
+			video_player != null, video_overlay != null, party_audio != null
+		])
 		return false
 
+	print("[PartyScene] Resolving video/audio paths...")
 	_selected_video_path = _resolve_first_existing_path(VIDEO_CANDIDATE_PATHS)
 	_selected_audio_path = _resolve_first_existing_path(AUDIO_CANDIDATE_PATHS)
 
 	if _selected_video_path.is_empty():
-		push_warning("[PartyScene] Could not find a victory video in candidates")
+		push_error("[PartyScene] ❌ Could not find victory video in candidates: %s" % VIDEO_CANDIDATE_PATHS)
 		return false
+	
+	print("[PartyScene] Selected video: %s" % _selected_video_path)
 
 	var root = get_tree().root
 	var video_stream: VideoStream = null
@@ -131,12 +159,22 @@ func _play_victory_video() -> bool:
 		video_player.finished.disconnect(_on_video_finished)
 	video_player.finished.connect(_on_video_finished, CONNECT_ONE_SHOT)
 
+	print("[PartyScene] Calling video_player.play()...")
 	video_player.play()
+	print("[PartyScene] ✅ video_player.play() called")
+	
 	if _play_external_audio:
+		print("[PartyScene] Starting external audio")
 		party_audio.play()
+		print("[PartyScene] ✅ Audio playback started")
 
-	print("[PartyScene] Media selected -> video=%s external_audio=%s audio_path=%s" % [_selected_video_path, _play_external_audio, _selected_audio_path if not _selected_audio_path.is_empty() else "<none>"])
-	print("[VERIFY] Party video started")
+	print("[PartyScene] 🎬 VICTORY VIDEO PLAYBACK STARTED")
+	print("[PartyScene] Video: %s | External Audio: %s | Audio Path: %s" % [
+		_selected_video_path,
+		_play_external_audio,
+		_selected_audio_path if not _selected_audio_path.is_empty() else "<none>"
+	])
+	print("="*60)
 
 	_start_finish_watchdog()
 	return true
