@@ -84,7 +84,7 @@ theme_override_constants/separation = 8
 layout_mode = 2
 
 [node name="Logo" type="TextureRect" parent="MenuMargins/CenterContainer/MenuCard/CardMargin/VBoxContainer/LogoContainer"]
-custom_minimum_size = Vector2(320, 96)
+custom_minimum_size = Vector2(240, 72)
 layout_mode = 2
 texture = ExtResource("2_logo")
 expand_mode = 1
