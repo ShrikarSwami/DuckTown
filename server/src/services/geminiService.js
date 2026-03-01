@@ -142,7 +142,7 @@ async function callGeminiAPI(systemPrompt, conversationHistory, userMessage) {
     const result = await model.generateContent({
       contents: messages,
       generationConfig: {
-        maxOutputTokens: 600,  // Increased safe limit for NPC dialogue
+        maxOutputTokens: 2000,  // High limit for reliable complete JSON output
         temperature: 0.7
       }
     });
@@ -396,7 +396,7 @@ function buildFallbackResponse(responseText) {
 
   let reply = "I... I don't know what to say.";
   if (typeof responseText === 'string' && responseText.trim().length > 0) {
-    const quotedReplyMatch = responseText.match(/"npc_reply"\s*:\s*"([\s\S]*?)"/);
+    const quotedReplyMatch = responseText.match(/"npc_reply"\s*:\s*"([^"]*(?:\\."[^"]*)*(?:[^"]*)?)/);
     if (quotedReplyMatch && quotedReplyMatch[1]) {
       reply = quotedReplyMatch[1];
     } else {
@@ -413,7 +413,7 @@ function buildFallbackResponse(responseText) {
   }
   reply = reply.replace(/^npc_reply\s*:?\s*/i, '').trim();
   
-  console.log(`[buildFallbackResponse] Fallback reply length: ${reply.length} chars`);
+  console.log(`[buildFallbackResponse] Fallback reply length: ${reply.length} chars, text: "${reply.substring(0, 100)}..."`);
   
   return normalizeGeminiResponse({
     npc_reply: reply,  // No truncation - let normalizeGeminiResponse handle length

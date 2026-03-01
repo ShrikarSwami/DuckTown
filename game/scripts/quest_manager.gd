@@ -109,9 +109,12 @@ func _on_npc_relationship_changed(npc_id: String, new_value: int, delta: int):
 
 func _emit_approvals_updated() -> void:
 	"""Emit the approvals_updated signal with current approval states"""
-	var baker_ok = approvals["baker"].is_approved
-	var merch_ok = approvals["merch"].is_approved
-	var mean_guard_ok = approvals["meanGuard"].is_approved
+	var baker_approval: Approval = approvals.get("baker") as Approval
+	var merch_approval: Approval = approvals.get("merch") as Approval
+	var mean_guard_approval: Approval = approvals.get("meanGuard") as Approval
+	var baker_ok: bool = baker_approval != null and baker_approval.is_approved
+	var merch_ok: bool = merch_approval != null and merch_approval.is_approved
+	var mean_guard_ok: bool = mean_guard_approval != null and mean_guard_approval.is_approved
 	var count = get_approval_progress()
 	
 	approvals_updated.emit(baker_ok, merch_ok, mean_guard_ok, count)
@@ -120,10 +123,13 @@ func _emit_approvals_updated() -> void:
 
 func _check_all_approvals() -> void:
 	"""Check if all 3 required approvals are met."""
-	var baker_ok := approvals.has("baker") and approvals["baker"].is_approved
-	var merch_ok := approvals.has("merch") and approvals["merch"].is_approved
-	var mean_guard_ok := approvals.has("meanGuard") and approvals["meanGuard"].is_approved
-	var all_met := baker_ok and merch_ok and mean_guard_ok
+	var baker_approval: Approval = approvals.get("baker") as Approval
+	var merch_approval: Approval = approvals.get("merch") as Approval
+	var mean_guard_approval: Approval = approvals.get("meanGuard") as Approval
+	var baker_ok: bool = baker_approval != null and baker_approval.is_approved
+	var merch_ok: bool = merch_approval != null and merch_approval.is_approved
+	var mean_guard_ok: bool = mean_guard_approval != null and mean_guard_approval.is_approved
+	var all_met: bool = baker_ok and merch_ok and mean_guard_ok
 
 	if all_met and not all_approvals_met:
 		all_approvals_met = true

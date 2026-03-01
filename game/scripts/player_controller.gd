@@ -9,7 +9,6 @@ const VERBOSE_DEBUG := false
 @onready var dialogue_ui: Node = get_tree().get_first_node_in_group("dialogue_ui")
 
 var nearby_interact_areas: Array[Area2D] = []
-var _movement_blocked_logged_this_dialogue: bool = false
 
 func _ready() -> void:
 	if dialogue_ui == null:
@@ -34,15 +33,9 @@ func _physics_process(_delta: float) -> void:
 		if focus_owner is LineEdit:
 			should_block_movement = true
 	
-	# Log movement blocked once per dialogue open (throttle spam)
-	if should_block_movement and not _movement_blocked_logged_this_dialogue:
-		print("[VERIFY] Movement blocked due to dialogue")
-		_movement_blocked_logged_this_dialogue = true
-	
 	var dir: Vector2 = Vector2.ZERO
 	if not should_block_movement:
 		dir = Input.get_vector("move_left", "move_right", "move_up", "move_down")
-		_movement_blocked_logged_this_dialogue = false
 	
 	velocity = dir * speed
 	move_and_slide()
