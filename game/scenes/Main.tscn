@@ -19,6 +19,8 @@
 [ext_resource type="Texture2D" uid="uid://cmo1vc6f7m5tw" path="res://assets/sprites/characters/Characters/Mom_Character.png" id="17_xa025"]
 [ext_resource type="Texture2D" uid="uid://8uuugo4jyya1" path="res://assets/sprites/characters/Characters/Nice_Guard_Character.png" id="18_36rkl"]
 [ext_resource type="Texture2D" uid="uid://lv5if6qwxm8e" path="res://assets/sprites/characters/Characters/Rival_Character.png" id="19_fs0b5"]
+[ext_resource type="PackedScene" uid="uid://b4u4oxdqpse8i" path="res://scenes/UI.tscn" id="20_1iba3"]
+[ext_resource type="Script" uid="uid://cvlymt3u7dvd7" path="res://scripts/dialogue_ui.gd" id="21_yxlcp"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_elqb8"]
 size = Vector2(1600, 20)
@@ -70,9 +72,6 @@ texture = ExtResource("1_nfivy")
 polygon = PackedVector2Array(0, 0, 1600, 0, 1600, 900, 0, 900)
 
 [node name="PlayerRoot" parent="." unique_id=2041773753 instance=ExtResource("1_elqb8")]
-
-[node name="Player" parent="PlayerRoot" index="0" unique_id=1965973080]
-speed = 120.0
 
 [node name="Walls" type="StaticBody2D" parent="." unique_id=924438832]
 
@@ -206,6 +205,9 @@ position = Vector2(1400, 400)
 [node name="Sprite2D" parent="Npc_Mayor/Node2D" parent_id_path=PackedInt32Array(550027314, 1015060391) index="0" unique_id=1968416017]
 texture = ExtResource("14_yxlcp")
 
+[node name="CollisionShape2D" parent="Npc_Mayor/InteractArea" parent_id_path=PackedInt32Array(550027314, 1275081626) index="0" unique_id=809746891]
+scale = Vector2(3, 3)
+
 [node name="Npc_meanGuard" parent="." unique_id=2087549275 instance=ExtResource("10_lhr70")]
 position = Vector2(1120, 225)
 
@@ -267,6 +269,12 @@ position = Vector2(860, 620)
 [node name="Spawn_mayorStage" type="Marker2D" parent="NPCSpawns/Spawn_MayorStage" unique_id=2073644921]
 position = Vector2(1400, 400)
 
+[node name="UI" parent="." unique_id=169828326 instance=ExtResource("20_1iba3")]
+
+[node name="DialogueUI" parent="UI/Hud" parent_id_path=PackedInt32Array(169828326, 1004105727) index="0" unique_id=271586739]
+visible = false
+script = ExtResource("21_yxlcp")
+
 [editable path="PlayerRoot"]
 [editable path="Npc_Baker"]
 [editable path="Npc_Coder"]
@@ -277,3 +285,4 @@ position = Vector2(1400, 400)
 [editable path="Npc_Mom"]
 [editable path="Npc_niceGuard"]
 [editable path="Npc_Rival"]
+[editable path="UI"]

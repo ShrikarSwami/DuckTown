@@ -6,7 +6,7 @@
 size = Vector2(10, 7)
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_7pv12"]
-radius = 30.4421
+radius = 30.864916
 
 [node name="Npc" type="CharacterBody2D" unique_id=1036836631]
 
@@ -21,9 +21,10 @@ scale = Vector2(2.5, 2.5)
 [node name="Sprite2D" type="Sprite2D" parent="Node2D" unique_id=1968416017]
 texture = ExtResource("2_ktgr7")
 
-[node name="InteractArea" type="Area2D" parent="." unique_id=1275081626]
+[node name="InteractArea" type="Area2D" parent="." unique_id=1275081626 groups=["npc_interact"]]
 scale = Vector2(2.5, 2.5)
-collision_layer = 0
+collision_layer = 2
+collision_mask = 2
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="InteractArea" unique_id=809746891]
 shape = SubResource("CircleShape2D_7pv12")
