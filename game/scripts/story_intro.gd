@@ -14,7 +14,9 @@ func _ready():
 func _process(delta: float) -> void:
 	if story_scroll == null:
 		return
-	story_scroll.scroll_vertical += int(_scroll_speed * delta)
+	var scroll_bar = story_scroll.get_v_scroll_bar()
+	if scroll_bar:
+		scroll_bar.value += _scroll_speed * delta
 
 func _input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_accept"):
