@@ -6,12 +6,17 @@
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_v6fml"]
 size = Vector2(10, 6)
 
+[sub_resource type="CircleShape2D" id="CircleShape2D_v6fml"]
+radius = 15.0
+
 [node name="PlayerRoot" type="Node" unique_id=2041773753]
 
 [node name="Player" type="CharacterBody2D" parent="." unique_id=1965973080]
 position = Vector2(800, 450)
 scale = Vector2(2.5, 2.5)
 script = ExtResource("1_v6fml")
+speed = null
+interact_action = null
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Player" unique_id=540646384]
 position = Vector2(0, 9)
@@ -24,3 +29,10 @@ texture = ExtResource("2_v6fml")
 
 [node name="Camera2D" type="Camera2D" parent="Player" unique_id=883490827]
 position = Vector2(0, -10)
+
+[node name="InteractArea" type="Area2D" parent="Player" unique_id=1865095707]
+collision_layer = 2
+collision_mask = 2
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Player/InteractArea" unique_id=1957073643]
+shape = SubResource("CircleShape2D_v6fml")
