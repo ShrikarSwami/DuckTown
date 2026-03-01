@@ -45,7 +45,8 @@ func _ready() -> void:
 	# Find interaction component immediately (should have been added by main.gd)
 	_interaction_component = get_node_or_null("NPC_Interaction")
 	if _interaction_component:
-		print("[NPC %s] Interaction component found" % name)
+		if VERBOSE_DEBUG:
+			print("[NPC %s] Interaction component found" % name)
 	else:
 		push_error("[NPC %s] Interaction component NOT found! Check main.gd setup." % name)
 

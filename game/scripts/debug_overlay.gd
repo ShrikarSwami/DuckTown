@@ -1,6 +1,8 @@
 extends Label
 # Debug overlay - shows system state for judges
 
+const VERBOSE_DEBUG := false
+
 var _debug_visible: bool = false
 var _rumor_system: Node
 var _quest_manager: Node
@@ -16,7 +18,8 @@ func _ready():
 	# Find all NPCs (will find interaction components when they're ready)
 	call_deferred("_find_npc_interactions")
 	
-	print("[DebugOverlay] Initialized")
+	if VERBOSE_DEBUG:
+		print("[DebugOverlay] Initialized")
 
 func _find_npc_interactions():
 	"""Find all NPC interaction nodes"""
@@ -24,7 +27,8 @@ func _find_npc_interactions():
 		var npc_id_value = npc.get("npc_id")
 		var npc_id = str(npc_id_value) if npc_id_value != null else "unknown"
 		_npc_interactions[npc_id] = npc
-	print("[DebugOverlay] Found %d NPCs" % _npc_interactions.size())
+	if VERBOSE_DEBUG:
+		print("[DebugOverlay] Found %d NPCs" % _npc_interactions.size())
 
 func _process(delta):
 	# Toggle debug with Q key (just pressed check)

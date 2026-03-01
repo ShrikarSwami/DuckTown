@@ -1,6 +1,8 @@
 extends Node2D
 # Party scene - celebration when all approvals are obtained
 
+const VERBOSE_DEBUG := false
+
 const MAIN_SCENE_PATH := "res://scenes/Main.tscn"
 const VICTORY_VIDEO_PATH := "res://assets/Video/Party.webm"
 const VICTORY_AUDIO_PATH := "res://assets/Audio/Party.wav"
@@ -31,7 +33,8 @@ func _ready():
 
 func _fade_then_play_victory_video() -> bool:
 	if fade_overlay != null:
-		print("[PartyScene] Fade start")
+		if VERBOSE_DEBUG:
+			print("[PartyScene] Fade start")
 		var fade_tween := create_tween()
 		fade_tween.set_process_mode(Tween.TWEEN_PROCESS_IDLE)
 		fade_tween.tween_property(fade_overlay, "color", Color(0, 0, 0, 1), PRE_VIDEO_FADE_DURATION)
@@ -84,7 +87,8 @@ func _play_victory_video() -> bool:
 		if audio_stream != null:
 			root.set_meta(PARTY_AUDIO_CACHE_KEY, audio_stream)
 
-	print("[PartyScene] Media source - video: %s, audio: %s" % [used_cached_video ? "cache" : "fallback_load", used_cached_audio ? "cache" : "fallback_load"])
+	if VERBOSE_DEBUG:
+		print("[PartyScene] Media source - video: %s, audio: %s" % ["cache" if used_cached_video else "fallback_load", "cache" if used_cached_audio else "fallback_load"])
 
 	if video_stream == null:
 		push_warning("[PartyScene] Could not load video: %s" % VICTORY_VIDEO_PATH)
@@ -106,13 +110,15 @@ func _play_victory_video() -> bool:
 
 	party_audio.play()
 	video_player.play()
-	print("[PartyScene] Video start")
+	print("[PartyScene] ✓ Video and audio playing")
+	print("[VERIFY] VIDEO START")
 
 	# Watchdog: if finished signal never arrives, still restart.
 	var watchdog := get_tree().create_timer(30.0)
 	watchdog.timeout.connect(func() -> void:
 		if not _restart_started:
-			print("[PartyScene] Video watchdog timeout, forcing restart")
+			if VERBOSE_DEBUG:
+				print("[PartyScene] Video watchdog timeout, forcing restart")
 			if party_audio.playing:
 				party_audio.stop()
 			_restart_demo()
@@ -123,6 +129,7 @@ func _play_victory_video() -> bool:
 
 func _on_video_finished() -> void:
 	print("[PartyScene] Video finished")
+	print("[VERIFY] VIDEO FINISH")
 	if party_audio != null and party_audio.playing:
 		party_audio.stop()
 	if fade_overlay != null:
@@ -145,7 +152,10 @@ func _restart_demo() -> void:
 		video_player.stop()
 
 	print("🔄 Restarting demo...")
+	print("[VERIFY] RESTARTING MAIN")
 	var err := get_tree().change_scene_to_file(MAIN_SCENE_PATH)
 	if err != OK:
-		push_error("[PartyScene] Failed to restart to Main.tscn")
+		print("[PartyScene] ✗ Failed to restart to Main")
 		get_tree().reload_current_scene()
+	else:
+		print("[PartyScene] ✓ Restarted to Main scene")

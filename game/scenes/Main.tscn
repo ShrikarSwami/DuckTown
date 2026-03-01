@@ -181,6 +181,8 @@ shape = SubResource("RectangleShape2D_qmy6f")
 [node name="PondArea" type="Node2D" parent="." unique_id=1300323303]
 
 [node name="PondCollision" type="StaticBody2D" parent="PondArea" unique_id=1829641350]
+collision_layer = 1
+collision_mask = 0
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="PondArea/PondCollision" unique_id=887823902]
 position = Vector2(1382, 848)

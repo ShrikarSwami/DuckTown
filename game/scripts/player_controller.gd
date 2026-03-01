@@ -1,5 +1,7 @@
 extends CharacterBody2D
 
+const VERBOSE_DEBUG := false
+
 @export var speed: float = 160.0
 @export var debug_interact: bool = true
 
@@ -18,31 +20,63 @@ func _ready() -> void:
 	_setup_input_map_if_missing()
 
 func _physics_process(_delta: float) -> void:
-	var dir: Vector2 = Input.get_vector("move_left", "move_right", "move_up", "move_down")
+	# Lock movement when dialogue is open or user is typing
+	var should_block_movement = false
+	if dialogue_ui != null and dialogue_ui.has_method("is_dialogue_open"):
+		should_block_movement = dialogue_ui.is_dialogue_open()
+	if dialogue_ui != null and dialogue_ui.has_method("is_open"):
+		should_block_movement = dialogue_ui.is_open()
+	
+	# Also block if LineEdit has focus (user is typing)
+	if not should_block_movement:
+		var focus_owner = get_viewport().gui_get_focus_owner()
+		if focus_owner is LineEdit:
+			should_block_movement = true
+	
+	var dir: Vector2 = Vector2.ZERO
+	if not should_block_movement:
+		dir = Input.get_vector("move_left", "move_right", "move_up", "move_down")
+	
 	velocity = dir * speed
 	move_and_slide()
 
 func _unhandled_input(event: InputEvent) -> void:
+	# Block WASD if dialogue is open or user is typing in LineEdit
+	var should_block_movement = false
+	if dialogue_ui != null:
+		if dialogue_ui.has_method("is_open") and dialogue_ui.is_open():
+			should_block_movement = true
+	
 	if event.is_action_pressed("interact"):
-		print("[Player] Interact pressed")
+		if VERBOSE_DEBUG:
+			print("[Player] Interact pressed")
 		_try_interact()
 		get_viewport().set_input_as_handled()
 	if event.is_action_pressed("emergency_dialogue"):
 		_force_open_baker_dialogue()
 		get_viewport().set_input_as_handled()
+	
+	# Block movement input while dialogue open
+	if event is InputEventKey and should_block_movement:
+		var keycode = event.keycode
+		if keycode in [KEY_W, KEY_A, KEY_S, KEY_D, KEY_UP, KEY_LEFT, KEY_DOWN, KEY_RIGHT]:
+			get_viewport().set_input_as_handled()
 
 func _try_interact() -> void:
 	var closest: Area2D = _get_closest_interact_area()
 	if closest == null:
-		print("[Player] Current NPC = None")
+		if VERBOSE_DEBUG:
+			print("[Player] Current NPC = None")
 		return
 
 	var npc: Node = closest.get_parent()
 	if npc == null:
-		print("[Player] Current NPC = None")
+		if VERBOSE_DEBUG:
+			print("[Player] Current NPC = None")
 		return
 
-	print("[Player] Current NPC = %s" % npc.name)
+	if VERBOSE_DEBUG:
+		print("[Player] Current NPC = %s" % npc.name)
 
 	if npc.has_method("start_dialogue"):
 		npc.start_dialogue("")
@@ -72,7 +106,7 @@ func _on_area_entered(area: Area2D) -> void:
 	if not area.is_in_group("npc_interact"):
 		return
 
-	if debug_interact:
+	if debug_interact and VERBOSE_DEBUG:
 		print("Entered npc_interact: ", area.name)
 
 	if not nearby_interact_areas.has(area):
@@ -97,7 +131,7 @@ func _on_area_exited(area: Area2D) -> void:
 	if not nearby_interact_areas.has(area):
 		return
 
-	if debug_interact:
+	if debug_interact and VERBOSE_DEBUG:
 		print("Exited npc_interact: ", area.name)
 
 	nearby_interact_areas.erase(area)
@@ -145,7 +179,8 @@ func _force_open_baker_dialogue() -> void:
 		return
 
 	dialogue_ui.call("open_for_npc", baker_npc)
-	print("[Emergency] Forced dialogue open.")
+	if VERBOSE_DEBUG:
+		print("[Emergency] Forced dialogue open.")
 
 func _find_baker_npc() -> Node:
 	for npc in get_tree().get_nodes_in_group("npc"):

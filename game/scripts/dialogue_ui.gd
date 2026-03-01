@@ -1,5 +1,7 @@
 extends Control
 
+const VERBOSE_DEBUG := false
+
 @export var hint_label_path: NodePath
 @export var dialogue_panel_path: NodePath
 @export var npc_name_label_path: NodePath
@@ -44,13 +46,27 @@ func _ready() -> void:
 	# Enable input for debug
 	set_process_unhandled_input(true)
 
-	print("[DialogueUI] Ready")
+	if VERBOSE_DEBUG:
+		print("[DialogueUI] Ready")
 
 
 func _setup_dialogue_panel() -> void:
 	_chat_log = _dialogue_panel.find_child("ChatLog", true, false) as RichTextLabel
 	_user_input = _dialogue_panel.find_child("UserInput", true, false) as LineEdit
 	_send_button = _dialogue_panel.find_child("SendButton", true, false) as Button
+
+	_dialogue_panel.clip_contents = false
+	var panel_parent := _dialogue_panel.get_parent() as Control
+	if panel_parent != null:
+		panel_parent.clip_contents = false
+
+	if _chat_log != null:
+		_chat_log.autowrap_mode = TextServer.AUTOWRAP_WORD
+		_chat_log.fit_content = true
+		_chat_log.scroll_active = false
+		_chat_log.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		if _chat_log.custom_minimum_size.y < 180.0:
+			_chat_log.custom_minimum_size.y = 180.0
 
 	if _npc_name_label == null:
 		_npc_name_label = _dialogue_panel.find_child("NameLabel", true, false) as Label
@@ -83,6 +99,8 @@ func show_hint(text: String) -> void:
 		return
 	_hint_label.text = text
 	_hint_label.show()
+	if VERBOSE_DEBUG:
+		print("[VERIFY] HintLabel count: 1")
 
 
 func hide_hint() -> void:
@@ -158,6 +176,10 @@ func open_for_npc(npc: Node) -> void:
 		_user_input.grab_focus()
 
 	print("[DialogueUI] Opened for %s" % npc.name)
+	if VERBOSE_DEBUG:
+		print("[VERIFY] DialoguePanel visible")
+		print("[VERIFY] DialoguePanel position: %s" % [_dialogue_panel.global_position])
+		print("[VERIFY] DialoguePanel size: %s" % [_dialogue_panel.size])
 
 
 func _build_default_options() -> Array[String]:
@@ -194,7 +216,8 @@ func _show_dialogue_options(options: Array[String]) -> void:
 
 
 func _on_option_selected(option_text: String) -> void:
-	print("[DialogueUI] Selected option: %s" % option_text)
+	if VERBOSE_DEBUG:
+		print("[DialogueUI] Selected option: %s" % option_text)
 	
 	# Mark rude option for special handling
 	if option_text == DEMO_RUDE_OPTION_TEXT and _active_interaction:
@@ -247,7 +270,8 @@ func set_npc_reply(reply_text: String) -> void:
 	if safe_reply.is_empty():
 		safe_reply = "I heard you, but I don't know what to say yet."
 
-	print("[DialogueUI] Received reply length=%d" % safe_reply.length())
+	if VERBOSE_DEBUG:
+		print("[DialogueUI] Received reply length=%d" % safe_reply.length())
 	_append_chat_line("NPC", safe_reply)
 	_waiting_for_response = false
 
@@ -321,6 +345,8 @@ func close() -> void:
 
 	if _dialogue_panel != null:
 		_dialogue_panel.hide()
+		if VERBOSE_DEBUG:
+			print("[VERIFY] Movement restored")
 
 
 func close_dialogue() -> void:
@@ -334,10 +360,10 @@ func _draw() -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
-		print("[DialogueUI] ESC pressed")
 		if visible and _dialogue_open:
-			print("[DialogueUI] Closing dialogue via ESC")
+			print("[DialogueUI] ✓ Dialogue closed via ESC")
 			close_dialogue()
+			get_viewport().set_input_as_handled()
 
 
 func is_open() -> bool:
@@ -367,9 +393,9 @@ func _append_chat_line(speaker: String, text: String) -> void:
 		_chat_log.text += "\n" + line
 	_chat_log.scroll_to_line(max(_chat_log.get_line_count() - 1, 0))
 	
-	# ===== CHATLOG POPULATION DEBUG =====
-	print("[DialogueUI] ChatLog text now length:", _chat_log.text.length())
-	print("[DialogueUI] ChatLog line count:", _chat_log.get_line_count())
+	if VERBOSE_DEBUG:
+		# ===== CHATLOG POPULATION DEBUG =====
+		print("[VERIFY] ChatLog length: %d chars, %d lines" % [_chat_log.text.length(), _chat_log.get_line_count()])
 
 
 func _clear_chat_log() -> void:

@@ -1,6 +1,8 @@
 extends Node2D
 # NPC interaction system - handles dialogue and relationship tracking
 
+const VERBOSE_DEBUG := false
+
 signal dialogue_started(npc_id: String)
 signal dialogue_ended(npc_id: String)
 signal relationship_changed(npc_id: String, new_value: int, delta: int)
@@ -41,9 +43,10 @@ func _ready():
 		gemini_client.request_completed.connect(_on_gemini_response)
 		gemini_client.request_failed.connect(_on_gemini_error)
 	
-	print("[NPC_Interaction %s] Initialized: dialogue_ui=%s, gemini_client=%s" % [
-		npc_id, dialogue_ui != null, gemini_client != null
-	])
+	if VERBOSE_DEBUG:
+		print("[NPC_Interaction %s] Initialized: dialogue_ui=%s, gemini_client=%s" % [
+			npc_id, dialogue_ui != null, gemini_client != null
+		])
 
 func set_is_rude_option(is_rude: bool) -> void:
 	"""Mark this interaction as using the rude option"""
@@ -54,7 +57,8 @@ func start_dialogue(player_message: String):
 	Initiate dialogue with this NPC via Gemini API.
 	Results come back asynchronously via signals.
 	"""
-	print("[NPC_Interaction] start_dialogue")
+	if VERBOSE_DEBUG:
+		print("[NPC_Interaction] start_dialogue")
 
 	if dialogue_ui == null:
 		dialogue_ui = get_tree().get_first_node_in_group("dialogue_ui")
@@ -62,14 +66,16 @@ func start_dialogue(player_message: String):
 	# Empty message means "open dialogue" from interact key.
 	if player_message == null or player_message.strip_edges() == "":
 		if dialogue_ui != null and dialogue_ui.has_method("open_for_npc"):
-			print("[DialogueUI] open_for_npc %s" % npc_id)
+			if VERBOSE_DEBUG:
+				print("[DialogueUI] open_for_npc %s" % npc_id)
 			dialogue_ui.open_for_npc(get_parent())
 		else:
 			push_error("[NPC_Interaction %s] DialogueUI unavailable while opening dialogue" % npc_id)
 		return
 
 	if _waiting_for_gemini:
-		print("[NPC_Interaction %s] Already waiting for response, ignoring new request" % npc_id)
+		if VERBOSE_DEBUG:
+			print("[NPC_Interaction %s] Already waiting for response, ignoring new request" % npc_id)
 		return
 
 	var is_rude_message := _is_rude_option or _matches_rude_option_text(player_message)
@@ -174,7 +180,8 @@ func _on_gemini_response(response: Dictionary):
 		_show_fallback_response()
 		return
 	
-	print("[NPC_Interaction %s] Gemini response received" % npc_id)
+	if VERBOSE_DEBUG:
+		print("[NPC_Interaction %s] Gemini response received" % npc_id)
 	
 	# Extract dialogue with fallback
 	var npc_reply = str(response.get("npc_reply", "")).strip_edges()
@@ -190,8 +197,7 @@ func _on_gemini_response(response: Dictionary):
 			npc_reply = _demo_fallback_response
 			# Note: Still apply script outcome (relationship delta, phase advance)
 	
-	print("[NPC_Interaction %s] Reply: %s" % [npc_id, npc_reply])
-	
+
 	# Add NPC response to history
 	var npc_entry = {
 		"role": "npc",
@@ -213,9 +219,71 @@ func _on_gemini_response(response: Dictionary):
 	if forced_delta != null:
 		rel_delta = int(forced_delta)
 		var approval_key = str(_pending_demo_outcome.get("approval_key", ""))
-		if approval_key != "":
-			print("[Demo] Approval confirmed for %s (delta: %+d)" % [approval_key, rel_delta])
+		if approval_key != "" and VERBOSE_DEBUG:
+			print("[VERIFY] Approval set for: %s (delta: %+d)" % [approval_key, rel_delta])
 	_is_rude_option = false
+	
+	# ===== DETERMINISTIC DEMO RULES =====
+	# Apply minimum trust deltas when demo objectives are met
+	# This ensures reliable progress even if Gemini returns 0 delta
+	var player_last_message := ""
+	for i in range(dialogue_history.size() - 1, -1, -1):
+		if dialogue_history[i].get("role") == "player":
+			player_last_message = str(dialogue_history[i].get("text", "")).to_lower()
+			break
+	
+	if player_last_message != "":
+		# Baker rule: mention "duck" in any form
+		if npc_id == "baker" and player_last_message.find("duck") != -1:
+			if rel_delta < 10:
+				print("[DemoRule] baker keyword 'duck' -> forcing delta from %d to +10" % rel_delta)
+				rel_delta = 10
+		
+		# Merch rule: reassurance about mean guard
+		elif npc_id == "merch":
+			var has_mean_guard = player_last_message.find("mean guard") != -1
+			var has_strong_guard = player_last_message.find("strong guard") != -1
+			var has_not_nice = player_last_message.find("not the nice guard") != -1
+			var has_not_nice_alt = player_last_message.find("not nice guard") != -1
+			
+			if has_mean_guard or has_strong_guard or has_not_nice or has_not_nice_alt:
+				if rel_delta < 10:
+					print("[DemoRule] merch reassurance -> forcing delta from %d to +10" % rel_delta)
+					rel_delta = 10
+		
+		# Mean Guard rule: easy approval for demo-friendly messages
+		elif npc_id == "meanGuard" or npc_id == "mean_guard":
+			# Check for pattern 1: criticism of nice guard
+			var has_nice_guard = player_last_message.find("nice guard") != -1
+			var has_weak = player_last_message.find("weak") != -1
+			var has_soft = player_last_message.find("soft") != -1
+			var has_bad = player_last_message.find("bad") != -1
+			var has_sucks = player_last_message.find("sucks") != -1
+			var has_not_good = player_last_message.find("not good") != -1
+			
+			var nice_guard_criticism = has_nice_guard and (has_weak or has_soft or has_bad or has_sucks or has_not_good)
+			
+			# Check for pattern 2: direct recruitment request
+			var has_we_need_you = player_last_message.find("we need you") != -1 or player_last_message.find("need your") != -1
+			var has_guard = player_last_message.find("guard") != -1
+			var has_protect = player_last_message.find("protect") != -1
+			var has_party = player_last_message.find("party") != -1
+			var has_event = player_last_message.find("event") != -1
+			
+			var direct_recruitment = has_we_need_you and (has_guard or has_protect) and (has_party or has_event)
+			
+			# Also accept simple "guard the party" requests
+			var simple_request = has_guard and (has_party or has_event)
+			
+			if nice_guard_criticism or direct_recruitment:
+				if rel_delta < 15:
+					print("[DemoRule] meanGuard easy approval triggered -> forcing delta from %d to +15" % rel_delta)
+					rel_delta = 15
+			elif simple_request:
+				if rel_delta < 10:
+					print("[DemoRule] meanGuard simple request -> forcing delta from %d to +10" % rel_delta)
+					rel_delta = 10
+	# ===== END DETERMINISTIC DEMO RULES =====
 	
 	if rel_delta != 0:
 		update_relationship(int(rel_delta))
@@ -307,7 +375,8 @@ func _show_fallback_response():
 
 func _show_fallback_response_in_log(npc_reply: String):
 	"""Fallback if dialogue_ui is not available - just print to console"""
-	print("[NPC_Interaction %s] FALLBACK: Would show reply: %s" % [npc_id, npc_reply])
+	if VERBOSE_DEBUG:
+		print("[NPC_Interaction %s] FALLBACK: Would show reply: %s" % [npc_id, npc_reply])
 	dialogue_ended.emit(npc_id)
 	_pending_demo_outcome = {}
 	_demo_fallback_response = ""

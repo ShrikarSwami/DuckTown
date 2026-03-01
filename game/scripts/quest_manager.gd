@@ -1,6 +1,8 @@
 extends Node
 # Quest manager - tracks approvals required for party scene
 
+const VERBOSE_DEBUG := false
+
 class Approval:
 	var npc_id: String
 	var npc_name: String
@@ -40,6 +42,7 @@ var _demo_fallback_responses := {
 }
 
 signal approval_changed(npc_id: String, is_approved: bool)
+signal approvals_updated(baker_ok: bool, merch_ok: bool, mean_guard_ok: bool, approvals_count: int)
 signal all_approvals_met_signal()
 signal party_triggered()
 signal demo_phase_changed(new_phase: int)
@@ -53,7 +56,8 @@ func _ready():
 	approvals["merch"] = Approval.new("merch", "Merch", "decorations")
 	approvals["meanGuard"] = Approval.new("meanGuard", "Mean Guard", "safety")
 	
-	print("[QuestManager] Initialized with 3 approval gates")
+	if VERBOSE_DEBUG:
+		print("[QuestManager] Initialized with 3 approval gates")
 	
 	# Find NPC interaction nodes (deferred to let Main.gd create them first)
 	call_deferred("_find_npc_interactions")
@@ -71,12 +75,14 @@ func _find_npc_interactions() -> void:
 		if interaction and interaction.has_signal("relationship_changed"):
 			npc_interactions[npc_id] = interaction
 			interaction.relationship_changed.connect(_on_npc_relationship_changed)
-			print("[QuestManager] Connected to %s" % npc_id)
+			if VERBOSE_DEBUG:
+				print("[QuestManager] Connected to %s" % npc_id)
 		else:
 			# NPCs might not have interaction yet, try the NPC node itself
 			if npc.has_signal("relationship_changed"):
 				npc_interactions[npc_id] = npc
-				print("[QuestManager] Connected directly to NPC %s" % npc_id)
+				if VERBOSE_DEBUG:
+					print("[QuestManager] Connected directly to NPC %s" % npc_id)
 
 func _on_npc_relationship_changed(npc_id: String, new_value: int, delta: int):
 	"""Called when an NPC's relationship changes"""
@@ -92,11 +98,24 @@ func _on_npc_relationship_changed(npc_id: String, new_value: int, delta: int):
 			if approval.is_approved and not was_approved:
 				print("[QuestManager] %s approved! (trust: %d)" % [approval.npc_name, new_value])
 				approval_changed.emit(npc_id, true)
+				_emit_approvals_updated()
 				_check_all_approvals()
 			elif not approval.is_approved and was_approved:
 				print("[QuestManager] %s approval lost! (trust: %d)" % [approval.npc_name, new_value])
 				approval_changed.emit(npc_id, false)
+				_emit_approvals_updated()
 				all_approvals_met = false
+
+func _emit_approvals_updated() -> void:
+	"""Emit the approvals_updated signal with current approval states"""
+	var baker_ok = approvals["baker"].is_approved
+	var merch_ok = approvals["merch"].is_approved
+	var mean_guard_ok = approvals["meanGuard"].is_approved
+	var count = get_approval_progress()
+	
+	approvals_updated.emit(baker_ok, merch_ok, mean_guard_ok, count)
+	if VERBOSE_DEBUG:
+		print("[QuestManager] approvals_updated emitted: baker=%s merch=%s meanGuard=%s count=%d" % [baker_ok, merch_ok, mean_guard_ok, count])
 
 func _check_all_approvals() -> void:
 	"""Check if all 3 approvals are met"""
@@ -249,7 +268,7 @@ func process_demo_player_message(npc_id: String, player_message: String) -> Dict
 			outcome["fallback_response"] = _demo_fallback_responses["baker_initial"]
 			print("[Demo] Baker: help requested, asking about cake type")
 			return outcome
-		if bool(_demo_flags.get("baker_help_requested", false)) and text.find("duck cupcake") != -1:
+		if bool(_demo_flags.get("baker_help_requested", false)) and text.find("duck") != -1:
 			_demo_flags["baker_approved"] = true
 			outcome["is_scripted_turn"] = true
 			outcome["script_instruction"] = "YOU MUST: (1) Enthusiastically confirm Duck cupcakes. (2) Say you'll make them special. (3) Agree to join party prep. Express excitement. Keep under 160 chars."
@@ -257,8 +276,7 @@ func process_demo_player_message(npc_id: String, player_message: String) -> Dict
 			outcome["force_relationship_delta"] = 35
 			outcome["advance_to_phase"] = 1
 			outcome["approval_key"] = "baker"
-			print("[Demo] Approval set for baker (Duck cupcakes chosen)")
-			return outcome
+			print("[DemoRule] baker duck keyword detected")
 
 	# Phase 1: Merch must mention rumor about nice guard and feel unsafe
 	if demo_phase == 1 and npc_id == "merch":
@@ -280,12 +298,19 @@ func process_demo_player_message(npc_id: String, player_message: String) -> Dict
 			print("[Demo] Approval set for merch (Mean guard reassurance)")
 			return outcome
 
-	# Phase 2: Mean Guard must agree to guard and insult nice guard
+	# Phase 2: Mean Guard must agree to guard (flexible conditions)
 	if demo_phase == 2 and npc_id == "meanGuard":
-		if text.find("guard") != -1 and text.find("party") != -1:
+		var mentions_guard = text.find("guard") != -1 or text.find("protect") != -1 or text.find("security") != -1
+		var mentions_party = text.find("party") != -1 or text.find("event") != -1
+		var is_recruitment = mentions_guard and mentions_party
+		
+		# Also accept if player criticizes nice guard
+		var criticizes_nice_guard = text.find("nice guard") != -1 and (text.find("weak") != -1 or text.find("soft") != -1 or text.find("bad") != -1)
+		
+		if is_recruitment or criticizes_nice_guard:
 			_demo_flags["guard_approved"] = true
 			outcome["is_scripted_turn"] = true
-			outcome["script_instruction"] = "YOU MUST: (1) Agree to guard the party with confidence. (2) Make a subtle insult about nice guard being too soft/weak for security. (3) Show your strength. Keep under 160 chars."
+			outcome["script_instruction"] = "YOU MUST: (1) Agree to guard the party. (2) Show confidence in your strength. (3) Optionally mention you're better than nice guard. Keep under 160 chars. Be direct and accepting."
 			outcome["fallback_response"] = _demo_fallback_responses["guard_accept"]
 			outcome["force_relationship_delta"] = 40
 			outcome["advance_to_phase"] = 3
@@ -324,6 +349,7 @@ func commit_demo_outcome(npc_id: String, outcome: Dictionary) -> void:
 		var old_phase = demo_phase
 		demo_phase = target_phase
 		print("[DemoPhase] Phase %d -> %d (via %s)" % [old_phase, demo_phase, npc_id])
+		print("[VERIFY] Demo phase current: %d" % demo_phase)
 		demo_phase_changed.emit(demo_phase)
 
 func get_demo_prompt_context(npc_id: String, player_message: String = "") -> Dictionary:

@@ -1,16 +1,28 @@
 extends PanelContainer
 # Progress Tracker - Shows task completion and progress bar
 
+const VERBOSE_DEBUG := false
+
 var _quest_manager: Node
 var _progress_bar: ProgressBar
 var _task_checkboxes: Array[Label] = []
 
 func _ready():
-	# Find quest manager
-	_quest_manager = get_tree().root.get_node_or_null("Main/QuestManager")
+	# Find quest manager using reliable current scene access
+	var current_scene = get_tree().get_current_scene()
+	if current_scene:
+		_quest_manager = current_scene.get_node_or_null("QuestManager")
+	
+	if not _quest_manager:
+		push_error("[ProgressTracker] Could not find QuestManager!")
+		return
+	
+	if VERBOSE_DEBUG:
+		print("[ProgressTracker] Found QuestManager: %s" % _quest_manager)
 	
 	# Find UI elements
 	_progress_bar = $MarginContainer/VBoxContainer/ProgressBar
+	_progress_bar.max_value = 3  # 0-3 approvals
 	
 	# Find task checkboxes
 	var task_list = $MarginContainer/VBoxContainer/TaskList
@@ -18,62 +30,66 @@ func _ready():
 	_task_checkboxes.append(task_list.get_node("Task2/CheckBox"))
 	_task_checkboxes.append(task_list.get_node("Task3/CheckBox"))
 	
-	# Connect to quest manager signals
-	if _quest_manager:
-		_quest_manager.approval_changed.connect(_on_approval_changed)
-		print("[ProgressTracker] Connected to QuestManager")
+	# Connect to new approvals_updated signal
+	if not _quest_manager.approvals_updated.is_connected(_on_approvals_updated):
+		_quest_manager.approvals_updated.connect(_on_approvals_updated)
+		if VERBOSE_DEBUG:
+			print("[ProgressTracker] Connected to approvals_updated signal")
+	else:
+		if VERBOSE_DEBUG:
+			print("[ProgressTracker] Already connected to approvals_updated signal")
 	
-	# Initial update
-	call_deferred("_update_display")
+	# Load initial approval state
+	call_deferred("_initialize_display")
 
-func _on_approval_changed(npc_id: String, is_approved: bool):
-	"""Called when an approval status changes"""
-	_update_display()
-
-func _update_display():
-	"""Update the progress bar and checkboxes"""
+func _initialize_display():
+	"""Initialize display with current approval state"""
 	if not _quest_manager:
 		return
 	
 	var approvals = _quest_manager.get_all_approvals()
-	var completed = 0
+	var baker_ok = approvals["baker"].is_approved
+	var merch_ok = approvals["merch"].is_approved
+	var mean_guard_ok = approvals["meanGuard"].is_approved
+	var count = _quest_manager.get_approval_progress()
 	
-	# Map NPC IDs to task indices
-	var npc_to_task = {
-		"baker": 0,
-		"merch": 1,
-		"guard": 2
-	}
-	
-	# Update checkboxes
-	for npc_id in npc_to_task.keys():
-		if npc_id in approvals:
-			var approval = approvals[npc_id]
-			var task_idx = npc_to_task[npc_id]
-			
-			if task_idx < _task_checkboxes.size():
-				var checkbox = _task_checkboxes[task_idx]
-				if approval.is_approved:
-					checkbox.text = "☑"
-					checkbox.modulate = Color(0.4, 1.0, 0.4)
-					completed += 1
-				else:
-					checkbox.text = "☐"
-					checkbox.modulate = Color(1.0, 1.0, 1.0)
-	
-	# Update progress bar
-	if _progress_bar:
-		_progress_bar.value = completed
-		
-		# Color code the progress bar
-		if completed == 3:
-			_progress_bar.modulate = Color(0.4, 1.0, 0.4)  # Green
-		elif completed >= 1:
-			_progress_bar.modulate = Color(1.0, 0.9, 0.4)  # Yellow
-		else:
-			_progress_bar.modulate = Color(1.0, 1.0, 1.0)  # White
+	_update_display(baker_ok, merch_ok, mean_guard_ok, count)
 
-func _process(_delta):
-	# Update every frame to catch changes
-	if visible and _quest_manager:
-		_update_display()
+func _on_approvals_updated(baker_ok: bool, merch_ok: bool, mean_guard_ok: bool, approvals_count: int):
+	"""Called when approvals are updated - receive state directly from QuestManager"""
+	_update_display(baker_ok, merch_ok, mean_guard_ok, approvals_count)
+
+func _update_display(baker_ok: bool, merch_ok: bool, mean_guard_ok: bool, approvals_count: int):
+	"""Update the progress bar and checkboxes with current approval states"""
+	if not _quest_manager:
+		if VERBOSE_DEBUG:
+			print("[ProgressTracker] Cannot update: _quest_manager is null")
+		return
+	
+	# Update checkboxes based on approval states
+	var approval_states = [baker_ok, merch_ok, mean_guard_ok]
+	for i in range(approval_states.size()):
+		if i < _task_checkboxes.size():
+			var checkbox = _task_checkboxes[i]
+			if approval_states[i]:
+				checkbox.text = "☑"
+				checkbox.modulate = Color(0.4, 1.0, 0.4)
+			else:
+				checkbox.text = "☐"
+				checkbox.modulate = Color(1.0, 1.0, 1.0)
+	
+	# Update progress bar value
+	if _progress_bar:
+		_progress_bar.value = approvals_count
+	
+	# Verification logs
+	if VERBOSE_DEBUG:
+		print("[ProgressTracker] approvals baker=%s merch=%s meanGuard=%s count=%d" % [baker_ok, merch_ok, mean_guard_ok, approvals_count])
+	
+	# Color code the progress bar
+	if approvals_count == 3:
+		_progress_bar.modulate = Color(0.4, 1.0, 0.4)  # Green
+	elif approvals_count >= 1:
+		_progress_bar.modulate = Color(1.0, 0.9, 0.4)  # Yellow
+	else:
+		_progress_bar.modulate = Color(1.0, 1.0, 1.0)  # White

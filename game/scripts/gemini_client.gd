@@ -1,6 +1,8 @@
 extends Node
 # Gemini client - handles HTTP calls to the backend proxy
 
+const VERBOSE_DEBUG := false
+
 var backend_url: String = "http://localhost:8080"
 var http_request: HTTPRequest
 
@@ -15,7 +17,8 @@ func _ready():
 	add_child(http_request)
 	http_request.request_completed.connect(_on_request_completed)
 	
-	print("[GeminiClient] Initialized. Backend: %s" % backend_url)
+	if VERBOSE_DEBUG:
+		print("[GeminiClient] Initialized. Backend: %s" % backend_url)
 
 func call_api(request_data: Dictionary) -> void:
 	"""
@@ -32,10 +35,11 @@ func call_api(request_data: Dictionary) -> void:
 		return
 	
 	var json_string = JSON.stringify(request_data)
-	print("[GeminiClient] Sending request ... npc=%s endpoint=%s" % [
-		request_data.get("npc_name", "unknown"),
-		backend_url + "/api/gemini"
-	])
+	if VERBOSE_DEBUG:
+		print("[GeminiClient] Sending request ... npc=%s endpoint=%s" % [
+			request_data.get("npc_name", "unknown"),
+			backend_url + "/api/gemini"
+		])
 	
 	var headers = ["Content-Type: application/json"]
 	var error = http_request.request(
@@ -83,7 +87,8 @@ func _on_request_completed(result: int, response_code: int, headers: PackedStrin
 		request_failed.emit(type_error_msg)
 		return
 
-	print("[GeminiClient] Backend response received (success=%s)" % response_data.get("success", false))
+	if VERBOSE_DEBUG:
+		print("[GeminiClient] Backend response received (success=%s)" % response_data.get("success", false))
 	
 	# Response is valid - emit it
 	request_completed.emit(response_data)
@@ -96,7 +101,8 @@ func is_backend_available() -> bool:
 func set_backend_url(url: String):
 	"""Update backend URL"""
 	backend_url = url
-	print("[GeminiClient] Backend URL updated to: %s" % backend_url)
+	if VERBOSE_DEBUG:
+		print("[GeminiClient] Backend URL updated to: %s" % backend_url)
 
 
 # TODO: Implement these methods

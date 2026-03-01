@@ -1,5 +1,152 @@
 # 🦆 DuckTown Demo - Quick Start Guide
 
+## 🚦 One Run Smoke Test
+
+**Use this checklist to verify the full demo flow before showing it live.**
+
+### 1. Start Game
+- **Action:** Run Main.tscn in Godot
+- **Expected:** Console shows `🦆 DuckTown Starting...` and `=== DEMO RUN #1 ===`
+- **Console:** 
+  ```
+  🦆 DuckTown Starting...
+  === DEMO RUN #1 ===
+  ✅ All systems initialized
+  ```
+
+### 2. Enter Player Name
+- **Action:** At StoryIntro screen, type your name (or leave blank for "Alex") and click Continue
+- **Expected:** Transition to Main scene with intro message popup
+- **Console:** `[StoryIntro] Player name set: <YourName>`
+
+### 3. Talk to Baker
+- **Action:** Walk to `Npc_Baker` (near bakery), press E, select option mentioning "duck"
+- **Expected:** 
+  - DialoguePanel opens with NPC name "Baker"
+  - Gemini responds with food-related reply
+  - Trust HUD shows `Baker: 10` (or higher, green)
+  - ProgressTracker checkbox 1 turns green (☑)
+- **Console:**
+  ```
+  [DialogueUI] Opened for Npc_Baker
+  [NPC_Interaction baker] Starting dialogue: 'Can you make duck cupcakes?'
+  [NPC Baker] Relationship: 0 → 10 (delta: +10)
+  [QuestManager] Baker approved! (trust: 10)
+  ```
+
+### 4. Talk to Merch
+- **Action:** Walk to `Npc_merchGuy`, press E, select option mentioning "mean guard"
+- **Expected:**
+  - Trust HUD shows `Merch: 10` (green)
+  - ProgressTracker checkbox 2 turns green (☑)
+- **Console:**
+  ```
+  [NPC Merch] Relationship: 0 → 10 (delta: +10)
+  [QuestManager] Merch approved! (trust: 10)
+  ```
+
+### 5. Talk to Mean Guard
+- **Action:** Walk to `Npc_meanGuard`, press E, select "We need you to guard the party"
+- **Expected:**
+  - Trust HUD shows `MeanGuard: 15` (green)
+  - ProgressTracker checkbox 3 turns green (☑)
+  - Progress bar fills to 3/3
+- **Console:**
+  ```
+  [NPC Mean Guard] Relationship: -10 → 5 (delta: +15)
+  [QuestManager] Mean Guard approved! (trust: 5)
+  [DemoPhase] ✨ ALL APPROVALS MET! Party unlock!
+  [QuestManager] 🎉 PARTY TRIGGERED!
+  ```
+
+### 6. Verify ProgressTracker Updates
+- **Expected:** All three checkboxes are green (☑), progress bar shows 3/3 and is green
+
+### 7. Verify Party Scene Triggers
+- **Expected:** Scene automatically changes to Party.tscn
+- **Console:**
+  ```
+  🎉 PARTY SCENE LOADED!
+  [PartyScene] Video start
+  [VERIFY] VIDEO START
+  ```
+
+### 8. Verify Victory Video Plays with Audio
+- **Expected:** 
+  - Full-screen video of party celebration
+  - Audio plays simultaneously
+  - Video runs for ~8-10 seconds
+- **Console:**
+  ```
+  [PartyScene] Video finished
+  [VERIFY] VIDEO FINISH
+  ```
+
+### 9. Verify Restart Returns to Main
+- **Expected:** After video finishes, scene automatically reloads to Main.tscn
+- **Console:**
+  ```
+  🔄 Restarting demo...
+  [VERIFY] RESTARTING MAIN
+  === DEMO RUN #2 ===
+  ```
+
+---
+
+## 🔧 Debug Configuration
+
+### Verbose Debug Toggle
+All game scripts include a `VERBOSE_DEBUG` constant (set to `false` by default) that controls detailed diagnostic logging:
+
+**Files with VERBOSE_DEBUG:**
+- `dialogue_ui.gd` - UI positioning, panel state, chat log metrics
+- `npc_interaction.gd` - Detailed interaction flow, fallback responses
+- `main.gd` - System initialization details, NPC connection logs
+- `party_scene.gd` - Media loading details, fade timing
+- `quest_manager.gd` - Phase transitions, approval tracking details
+- `progress_tracker.gd` - ProgressBar update cycles
+- `trust_hud.gd` - HUD registration, NPC discovery
+- `debug_overlay.gd` - NPC detection loops
+- `gemini_client.gd` - HTTP request details
+- `player_controller.gd` - Movement/interact input events
+- `npc.gd` - Click events, rumor learning details
+
+**To enable verbose logging:** Change `const VERBOSE_DEBUG := false` to `true` in any script.
+
+### Important Logs (Always Visible)
+These lifecycle logs remain visible even when `VERBOSE_DEBUG = false`:
+
+**Startup & Initialization:**
+- `🦆 DuckTown Starting...`
+- `=== DEMO RUN #X ===`
+- `✅ All systems initialized`
+
+**Dialogue & Interaction:**
+- `[DialogueUI] Opened for <NPC>`
+- `[NPC_Interaction X] Starting dialogue: '<message>'`
+
+**Relationship & Trust:**
+- `[NPC X] Relationship: A → B (delta: +C)`
+
+**Approvals & Quest Progress:**
+- `[QuestManager] <NPC> approved! (trust: X)`
+- `[DemoPhase] ✨ ALL APPROVALS MET! Party unlock!`
+- `[QuestManager] 🎉 PARTY TRIGGERED!`
+
+**Party Scene:**
+- `🎉 PARTY SCENE LOADED!`
+- `[PartyScene] Video start`
+- `[VERIFY] VIDEO START`
+- `[PartyScene] Video finished`
+- `[VERIFY] VIDEO FINISH`
+- `🔄 Restarting demo...`
+- `[VERIFY] RESTARTING MAIN`
+
+**Errors:**
+- All `push_error()` and `push_warning()` messages remain visible
+
+---
+
 ## ✅ Implementation Status
 
 ### Core Systems (COMPLETE)
