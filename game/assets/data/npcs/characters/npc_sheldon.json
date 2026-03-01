@@ -1,0 +1,63 @@
+{
+  "id": "npc_sheldon",
+  "class": "Npc",
+  "name": "Sheldon",
+  "role": "Coder / Presenter",
+  "oneLineVibe": "pedantic nerd who is in love with the sound of his own voice",
+  "coreTraits": [
+    "thinks he's smarter than everyone else",
+    "nerdy",
+    "isolated"
+  ],
+  "tasks": {
+    "publicTasks": [
+      "Program and present something at the Duck Party."
+    ],
+    "dependencies": []
+  },
+  "pressurePoints": {
+    "fearsOrPressurePoint": "Being contradicted or proven wrong.",
+    "whatMakesHimFold": "Being corrected with clear evidence or publicly outsmarted."
+  },
+  "goals": {
+    "whatTheyWantFromDuckParty": "Have a good presentation but not do a lot of work.",
+    "mayorGoalForThem": "Make a cool program/presentation."
+  },
+  "relationships": {
+    "dealBreakers": [
+      "npc_hans"
+    ],
+    "friends": [
+      "npc_amy",
+      "npc_vince"
+    ],
+    "disliked_ppl": [],
+    "secretRespect": [],
+    "notes": [
+      "Acts isolated but likes being around people who feel similarly stressed (Amy).",
+      "Gets along with Vince because they’re both young and a bit cynical."
+    ]
+  },
+  "secrets": {
+    "mildSecret": "Prefers using Gemini instead of actually coding.",
+    "spicySafeSecret": "Pretends not to like gossip but actually does.",
+    "secretTaskHidden": null
+  },
+  "rumorBehavior": {
+    "spreadsRumors": true,
+    "accuracyMinPercent": 50,
+    "accuracyMaxPercent": 80,
+    "talksToAtLeast": 1,
+    "spreadStyle": "pedantic-reframe",
+    "notes": "He retells rumors like they're 'observations' and loves sounding correct."
+  },
+  "speechStyle": {
+    "tone": "polite but tired (slightly smug)",
+    "length": "medium",
+    "catchphrasesOrTicks": []
+  },
+  "difficulty": {
+    "howEasyToConvince": "low",
+    "pointsRequired": 2
+  }
+}

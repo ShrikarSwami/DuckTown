@@ -1,122 +1,158 @@
 extends Node2D
 # NPC interaction system - handles dialogue and relationship tracking
 
-# TODO: Implement NPC dialogue and interaction
-
 signal dialogue_started(npc_id: String)
-signal dialogue_ended()
-signal relationship_changed(npc_id: String, delta: int)
+signal dialogue_ended(npc_id: String)
+signal relationship_changed(npc_id: String, new_value: int, delta: int)
+signal rumor_generated(npc_id: String, rumor: Dictionary)
 
 @export var npc_id: String = "unknown"
 @export var npc_name: String = "Unknown NPC"
-@export var personality_traits: Array[String] = []
+@export var personality_traits: Array = []  # Untyped to accept JSON arrays
 @export var initial_relationship: int = 0
 
 var current_relationship: int = 0
 var dialogue_history: Array[Dictionary] = []
 var known_rumors: Array[String] = []
-var gemini_client
+var gemini_client: Node
+var rumor_system: Node
+var dialogue_ui: Node
+
+var _waiting_for_gemini: bool = false
 
 func _ready():
 	current_relationship = initial_relationship
-	gemini_client = get_tree().root.get_node("Main/GeminiClient")
-	# TODO: Wire up proximity detection from Player
-	# TODO: Connect interaction area signals
-
-func _process(delta):
-	# TODO: Check if player is in interaction range
-	# TODO: Display "Press E to interact" prompt
-	pass
+	
+	# Find systems in the tree
+	gemini_client = get_tree().root.get_node_or_null("Main/GeminiClient")
+	dialogue_ui = get_tree().get_first_node_in_group("dialogue_ui")
+	rumor_system = get_tree().root.get_node_or_null("Main/RumorSystem")
+	
+	if gemini_client and gemini_client.has_signal("request_completed"):
+		gemini_client.request_completed.connect(_on_gemini_response)
+		gemini_client.request_failed.connect(_on_gemini_error)
+	
+	print("[NPC %s] Initialized with %d initial relationship" % [npc_name, current_relationship])
 
 func start_dialogue(player_message: String):
-	# TODO: Call Gemini API via backend
+	"""
+	Initiate dialogue with this NPC via Gemini API.
+	Results come back asynchronously via signals.
+	"""
+	if _waiting_for_gemini:
+		print("[NPC %s] Already waiting for response" % npc_name)
+		return
+	
 	dialogue_started.emit(npc_id)
 	
-	# TODO: Add to dialogue history
+	# Add player message to history
 	var player_entry = {
 		"role": "player",
 		"text": player_message
 	}
 	dialogue_history.append(player_entry)
 	
-	# TODO: Call backend /api/gemini endpoint with:
-	# - NPC ID and personality
-	# - Last few messages from dialogue_history
-	# - Player's current relationship score
-	# - Known rumors in town
+	print("[NPC %s] Starting dialogue: '%s'" % [npc_name, player_message])
 	
-	# Example structure:
-	# var request_data = {
-	#     "npc_id": npc_id,
-	#     "npc_name": npc_name,
-	#     "npc_personality": build_personality_dict(),
-	#     "player_message": player_message,
-	#     "player_relationship": current_relationship,
-	#     "dialogue_history": dialogue_history.slice(-10),  # Last 10 messages
-	#     "known_rumors": known_rumors
-	# }
+	# Build request to backend
+	var request_data = {
+		"npc_id": npc_id,
+		"npc_name": npc_name,
+		"npc_personality": {
+			"traits": personality_traits,
+			"speech_pattern": "natural",
+			"current_mood": "neutral"
+		},
+		"player_message": player_message,
+		"player_relationship": current_relationship,
+		"dialogue_history": dialogue_history.slice(-10),  # Last 10 messages only
+		"known_rumors": known_rumors
+	}
 	
-	# await gemini_client.call_api(request_data)
-	pass
+	_waiting_for_gemini = true
+	print("[NPC %s] Calling Gemini API..." % npc_name)
+	gemini_client.call_api(request_data)
 
-func handle_gemini_response(response: Dictionary):
-	# TODO: Parse response and update game state
-	# Response fields:
-	# - npc_reply: string
-	# - rumor: optional dict with text, tags, confidence
-	# - relationship_delta: int
-	# - quest_progress: optional dict
-	# - npc_mood_change: string
+func _on_gemini_response(response: Dictionary):
+	"""Handle successful response from Gemini API"""
+	if not _waiting_for_gemini:
+		return
 	
-	if response.get("success", false):
-		var npc_reply = response.get("npc_reply", "")
-		var rel_delta = response.get("relationship_delta", 0)
-		
-		# TODO: Display dialogue text in UI
-		# TODO: Add to dialogue history
-		var npc_entry = {
-			"role": "npc",
-			"text": npc_reply
-		}
-		dialogue_history.append(npc_entry)
-		
-		# TODO: Update relationship
+	_waiting_for_gemini = false
+	
+	if not response.get("success", false):
+		print("[NPC %s] Gemini returned error: %s" % [npc_name, response.get("error", "unknown")])
+		return
+	
+	print("[NPC %s] Gemini response received" % npc_name)
+	
+	# Extract dialogue
+	var npc_reply = response.get("npc_reply", "...")
+	print("[NPC %s] Reply: %s" % [npc_name, npc_reply])
+	
+	# Add NPC response to history
+	var npc_entry = {
+		"role": "npc",
+		"text": npc_reply
+	}
+	dialogue_history.append(npc_entry)
+	
+	# Update relationship
+	var rel_delta = response.get("relationship_delta", 0)
+	if rel_delta != 0:
 		update_relationship(rel_delta)
-		
-		# TODO: Handle rumor if present
-		if response.has("rumor") and response["rumor"] != null:
-			handle_rumor(response["rumor"])
-		
-		# TODO: Handle quest progress
-		if response.has("quest_progress"):
-			# Signal quest system to update
-			pass
-	else:
-		# TODO: Handle API error
-		var error = response.get("error", "Unknown error")
-		print("Gemini API error: ", error)
+	
+	# Handle rumor if present
+	if response.has("rumor") and response["rumor"] != null:
+		var rumor = response["rumor"]
+		rumor_generated.emit(npc_id, rumor)
+		if rumor_system:
+			rumor_system.add_rumor(
+				"%s_rumor_%d" % [npc_id, dialogue_history.size()],
+				rumor.get("text", ""),
+				npc_id,
+				rumor.get("tags", [])
+			)
+	
+	# Tell dialogue UI to show this response
+	if dialogue_ui and dialogue_ui.has_method("set_npc_reply"):
+		dialogue_ui.call("set_npc_reply", npc_reply)
+	
+	# Emit completion
+	dialogue_ended.emit(npc_id)
+
+func _on_gemini_error(error: String):
+	"""Handle error from Gemini API"""
+	_waiting_for_gemini = false
+	print("[NPC %s] ERROR: %s" % [npc_name, error])
+	
+	if dialogue_ui and dialogue_ui.has_method("show_error"):
+		dialogue_ui.call("show_error", error)
 
 func update_relationship(delta: int):
-	# TODO: Update player's relationship with this NPC
+	"""Update relationship score and clamp to [-100, 100]"""
+	var old_value = current_relationship
 	current_relationship = clampi(current_relationship + delta, -100, 100)
-	relationship_changed.emit(npc_id, delta)
-	print("%s relationship delta: %d (now %d)" % [npc_name, delta, current_relationship])
+	
+	print("[NPC %s] Relationship: %d → %d (delta: %+d)" % [npc_name, old_value, current_relationship, delta])
+	
+	relationship_changed.emit(npc_id, current_relationship, delta)
 
-func handle_rumor(rumor_data: Dictionary):
-	# TODO: Add rumor to NPC's known rumors
-	# TODO: Signal rumor system to propagate
-	# Rumor fields: text, tags, confidence, rumor_target_npc, suggested_spread_to
-	print("New rumor for %s: %s" % [npc_name, rumor_data.get("text", "")])
+func get_relationship() -> int:
+	"""Get current relationship score"""
+	return current_relationship
 
-func build_personality_dict() -> Dictionary:
-	# TODO: Build personality object for Gemini prompt
-	return {
-		"traits": personality_traits,
-		"speech_pattern": "TODO: Define",
-		"current_mood": "TODO: Define"
-	}
+func get_dialogue_options() -> Array[String]:
+	"""Get suggested dialogue options for this NPC"""
+	# TODO: Generate contextual options based on relationship and known rumors
+	return [
+		"Tell me about yourself",
+		"Have you heard any rumors?",
+		"I'd like to help"
+	]
 
 func end_dialogue():
-	# TODO: Close dialogue UI
-	# TODO: Trigger rumor propagation in rumor_system
-	dialogue_ended.emit()
+	"""Called when player closes dialogue with this NPC"""
+	# Rumor may auto-spread after dialogue ends
+	dialogue_ended.emit(npc_id)
+

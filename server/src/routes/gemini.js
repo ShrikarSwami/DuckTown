@@ -3,6 +3,8 @@ const router = express.Router();
 const geminiService = require('../services/geminiService');
 const validateGeminiJson = require('../utils/validateGeminiJson');
 
+const DEFAULT_GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+
 /**
  * POST /api/gemini
  * 
@@ -32,12 +34,44 @@ const validateGeminiJson = require('../utils/validateGeminiJson');
  */
 router.post('/gemini', async (req, res) => {
   const startTime = Date.now();
-  
+
   try {
+    // Support two request formats:
+    // A) { npc_id, npc_name, player_message, ... }
+    // B) { prompt }
+    // If Format B is provided, map it to Format A for compatibility.
+    let requestBody = req.body;
+    const hasFormatA =
+      typeof requestBody?.npc_id === 'string' &&
+      typeof requestBody?.npc_name === 'string' &&
+      typeof requestBody?.player_message === 'string';
+
+    const hasFormatB = typeof requestBody?.prompt === 'string';
+
+    if (!hasFormatA && hasFormatB) {
+      requestBody = {
+        npc_id: 'npc_test',
+        npc_name: 'Test NPC',
+        npc_personality: {
+          traits: ['neutral'],
+          speech_pattern: 'natural',
+          current_mood: 'neutral'
+        },
+        player_message: requestBody.prompt,
+        player_relationship: 0,
+        dialogue_history: [],
+        known_rumors: [],
+        town_context: {}
+      };
+      console.log('[Gemini Route] Using legacy format: prompt');
+    } else {
+      console.log('[Gemini Route] Using format: npc_id/npc_name/player_message');
+    }
+
     // Step 1: Validate incoming request
-    console.log('[Gemini Route] Received request for NPC:', req.body.npc_id);
+    console.log('[Gemini Route] Received request for NPC:', requestBody.npc_id);
     
-    const validationError = validateGeminiJson.validateRequest(req.body);
+    const validationError = validateGeminiJson.validateRequest(requestBody);
     if (validationError) {
       console.log('[Gemini Route] Request validation failed:', validationError);
       return res.status(400).json({
@@ -48,7 +82,7 @@ router.post('/gemini', async (req, res) => {
     }
     
     // Step 2: Call Gemini API via service
-    const geminiResponse = await geminiService.callGemini(req.body);
+    const geminiResponse = await geminiService.callGemini(requestBody);
     
     // Step 3: Validate Gemini response
     const responseValidationError = validateGeminiJson.validateResponse(geminiResponse);
@@ -67,13 +101,13 @@ router.post('/gemini', async (req, res) => {
     const response = {
       ...geminiResponse,
       metadata: {
-        model_used: 'gemini-2.0-flash',
+        model_used: DEFAULT_GEMINI_MODEL,
         tokens_used: null, // TODO: Extract from Gemini response if available
         processing_time_ms: processingTime
       }
     };
     
-    console.log(`[Gemini Route] Success for ${req.body.npc_id} (${processingTime}ms)`);
+    console.log(`[Gemini Route] Success for ${requestBody.npc_id} (${processingTime}ms)`);
     res.status(200).json(response);
     
   } catch (error) {
@@ -91,11 +125,41 @@ router.post('/gemini', async (req, res) => {
     
     if (error.code === 'GEMINI_API_ERROR') {
       console.error('[Gemini Route] Gemini API error:', error.message);
+
+      if (error.httpStatus === 401) {
+        return res.status(401).json({
+          success: false,
+          error: 'Gemini authentication failed',
+          error_code: 'GEMINI_AUTH_FAILED',
+          details: 'Gemini API key is invalid or not authorized for this API.'
+        });
+      }
+
+      if (error.httpStatus === 403) {
+        return res.status(403).json({
+          success: false,
+          error: 'Gemini access forbidden',
+          error_code: 'GEMINI_ACCESS_FORBIDDEN',
+          details: 'Project/API key does not have permission. Check API enablement and billing.'
+        });
+      }
+
+      if (error.httpStatus === 429) {
+        return res.status(429).json({
+          success: false,
+          error: 'Gemini quota exceeded',
+          error_code: 'GEMINI_QUOTA_EXCEEDED',
+          details: 'Gemini quota/rate-limit exceeded. Check plan, billing, and project quotas.',
+          upstream: error.upstreamMessage || null
+        });
+      }
+
       return res.status(503).json({
         success: false,
         error: 'External service error',
         error_code: 'GEMINI_API_UNAVAILABLE',
-        details: 'Failed to reach Gemini API. Check your internet connection and API key.'
+        details: 'Failed to reach Gemini API. Check upstream status, network, and API key.',
+        upstream: error.upstreamMessage || null
       });
     }
     

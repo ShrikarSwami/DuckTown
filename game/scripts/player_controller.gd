@@ -72,7 +72,8 @@ func _on_area_entered(area: Area2D) -> void:
 	var npc_name: String = npc.name if npc != null else "NPC"
 
 	if dialogue_ui != null and dialogue_ui.has_method("show_hint"):
-		dialogue_ui.call("show_hint", npc_name)
+		var hint_text: String = "Press E to talk to %s" % npc_name
+		dialogue_ui.call("show_hint", hint_text)
 
 func _on_area_exited(area: Area2D) -> void:
 	if area == null:
@@ -93,7 +94,8 @@ func _on_area_exited(area: Area2D) -> void:
 			var npc: Node = closest.get_parent() if closest != null else null
 			var npc_name: String = npc.name if npc != null else "NPC"
 			if dialogue_ui.has_method("show_hint"):
-				dialogue_ui.call("show_hint", npc_name)
+				var hint_text: String = "Press E to talk to %s" % npc_name
+				dialogue_ui.call("show_hint", hint_text)
 
 func _setup_input_map_if_missing() -> void:
 	_ensure_action_with_keys("move_left", [KEY_A, KEY_LEFT])

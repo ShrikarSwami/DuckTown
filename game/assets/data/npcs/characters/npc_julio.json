@@ -1,0 +1,85 @@
+{
+  "id": "npc_julio",
+  "_comment": "This is the rival event organizer, Julio. He is a polished and calculating rival who is working against the player to undermine the Duck Party. He is controlling, ambitious, and cunning. He hates ducks and is being paid by a corporation to ruin the Duck Party. His main goal is to either convert the Duck Party into a Goose Party or cause it to fail. He can seed counter-rumors with a cooldown and has a chance to undo approvals. His pressure point is being seen as insignificant or publicly belittled, and he folds under public humiliation in front of multiple NPCs. His speech style is formal, precise, and slightly condescending. He is extremely difficult to convince, requiring 10 points.",
+  "class": "Rival",
+  "name": "Julio",
+  "role": "Rival Event Organizer",
+  "oneLineVibe": "your enemy, polished and calculating",
+  "coreTraits": [
+    "controlling",
+    "ambitious",
+    "cunning"
+  ],
+  "story": {
+    "mildSecret": "He hates ducks.",
+    "spicySafeSecret": "He is being paid by a corporation to ruin the Duck Party."
+  },
+  "alignment": {
+    "faction": "anti_duck_party",
+    "goal": "Convert the Duck Party into a Goose Party or cause it to fail."
+  },
+  "tasks": {
+    "publicTasks": [
+      "Convince NPCs to support a Goose Party instead.",
+      "Undo player approvals through counter-rumors.",
+      "Exploit NPC deal-breakers to create conflict."
+    ],
+    "counterMechanics": {
+      "canSeedCounterRumor": true,
+      "counterRumorCooldownSec": 25,
+      "canUndoApproval": true,
+      "undoApprovalChance": 0.4
+    }
+  },
+  "pressurePoints": {
+    "fearsOrPressurePoint": "Being seen as insignificant or publicly belittled.",
+    "whatMakesHimFold": "Public humiliation in front of multiple NPCs."
+  },
+  "goals": {
+    "whatHeWantsFromDuckParty": "He wants it not to exist or to become a Goose Party."
+  },
+  "rumorBehavior": {
+    "spreadsRumors": true,
+    "spreadCooldownSec": 20,
+    "accuracyMinPercent": 60,
+    "accuracyMaxPercent": 90,
+    "tellAtLeast": 2,
+    "tellAtMost": 4,
+    "style": "strategic-spin",
+    "notes": "Julio spreads rumors deliberately to destabilize player progress."
+  },
+  "speechStyle": {
+    "tone": "formal, precise, slightly condescending",
+    "catchphrasesOrTicks": [
+      "Let’s be precise.",
+      "That won’t be necessary."
+    ],
+    "length": "medium"
+  },
+  "difficulty": {
+    "howEasyToConvince": "extremely_high",
+    "pointsRequired": 10
+  },
+  "relationships": {
+    "dealBreakers": [],
+    "friend": "RANDOM_AT_START:secretFriend",
+    "secretRespect": null
+  },
+  "secretFriendOverride": {
+    "effects": {
+      "difficultyBonusPoints": 3,
+      "rumorAccuracyReduction": 10,
+      "applyAccuracyReductionWhen": "spread_only",
+      "addTags": [
+        "JULIO_SECRET_FRIEND"
+      ]
+    }
+  },
+  "intelNetwork": {
+    "enabled": true,
+    "autoLearnRumorChance": 0.3
+  },
+  "endings": {
+    "canTriggerGoosePartyEnding": true
+  }
+}

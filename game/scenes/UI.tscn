@@ -1,4 +1,7 @@
-[gd_scene format=3 uid="uid://b4u4oxdqpse8i"]
+[gd_scene load_steps=3 format=3 uid="uid://b4u4oxdqpse8i"]
+
+[ext_resource type="Script" path="res://scripts/progress_tracker.gd" id="1_progress"]
+[ext_resource type="Script" path="res://scripts/dialogue_ui.gd" id="2_dialogue"]
 
 [node name="UI" type="Control" unique_id=169828326]
 layout_mode = 3
@@ -17,15 +20,24 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+script = ExtResource("2_dialogue")
 
 [node name="HintLabel" type="Label" parent="Hud/DialogueUI" unique_id=485879628 groups=["dialogue_ui"]]
+visible = false
 layout_mode = 1
-anchors_preset = 2
+anchors_preset = 6
+anchor_left = 0.0
 anchor_top = 1.0
+anchor_right = 0.0
 anchor_bottom = 1.0
-offset_top = -23.0
-offset_right = 607.0
+offset_left = 10.0
+offset_top = -33.0
+offset_right = 230.0
+offset_bottom = -10.0
 grow_vertical = 0
+custom_minimum_size = Vector2(220, 23)
+theme_override_colors/font_color = Color(1.0, 1.0, 1.0, 1.0)
+theme_override_font_sizes/font_size = 14
 text = "Press E to talk"
 
 [node name="DialoguePanel" type="Panel" parent="Hud/DialogueUI" unique_id=2121308373]
@@ -77,3 +89,88 @@ custom_minimum_size = Vector2(80, 0)
 layout_mode = 2
 size_flags_horizontal = 4
 text = "Say"
+
+[node name="ProgressTracker" type="PanelContainer" parent="Hud" groups=["progress_tracker"]]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -280.0
+offset_top = 10.0
+offset_right = -10.0
+offset_bottom = 200.0
+grow_horizontal = 0
+script = ExtResource("1_progress")
+
+[node name="MarginContainer" type="MarginContainer" parent="Hud/ProgressTracker"]
+layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 12
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Hud/ProgressTracker/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="TitleLabel" type="Label" parent="Hud/ProgressTracker/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Party Preparations"
+horizontal_alignment = 1
+
+[node name="ProgressBar" type="ProgressBar" parent="Hud/ProgressTracker/MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 24)
+layout_mode = 2
+max_value = 3.0
+step = 1.0
+show_percentage = false
+
+[node name="Separator" type="HSeparator" parent="Hud/ProgressTracker/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="TaskList" type="VBoxContainer" parent="Hud/ProgressTracker/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Task1" type="HBoxContainer" parent="Hud/ProgressTracker/MarginContainer/VBoxContainer/TaskList"]
+layout_mode = 2
+
+[node name="CheckBox" type="Label" parent="Hud/ProgressTracker/MarginContainer/VBoxContainer/TaskList/Task1"]
+custom_minimum_size = Vector2(24, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "☐"
+
+[node name="TaskLabel" type="Label" parent="Hud/ProgressTracker/MarginContainer/VBoxContainer/TaskList/Task1"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "Get Baker's approval"
+
+[node name="Task2" type="HBoxContainer" parent="Hud/ProgressTracker/MarginContainer/VBoxContainer/TaskList"]
+layout_mode = 2
+
+[node name="CheckBox" type="Label" parent="Hud/ProgressTracker/MarginContainer/VBoxContainer/TaskList/Task2"]
+custom_minimum_size = Vector2(24, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "☐"
+
+[node name="TaskLabel" type="Label" parent="Hud/ProgressTracker/MarginContainer/VBoxContainer/TaskList/Task2"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "Get Merchant's approval"
+
+[node name="Task3" type="HBoxContainer" parent="Hud/ProgressTracker/MarginContainer/VBoxContainer/TaskList"]
+layout_mode = 2
+
+[node name="CheckBox" type="Label" parent="Hud/ProgressTracker/MarginContainer/VBoxContainer/TaskList/Task3"]
+custom_minimum_size = Vector2(24, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "☐"
+
+[node name="TaskLabel" type="Label" parent="Hud/ProgressTracker/MarginContainer/VBoxContainer/TaskList/Task3"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "Get Guard's approval"

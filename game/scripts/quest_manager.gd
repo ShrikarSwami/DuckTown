@@ -1,139 +1,121 @@
 extends Node
-# Quest manager - tracks quests, objectives, and rewards
+# Quest manager - tracks approvals required for party scene
 
-# TODO: Implement quest tracking system
-
-class Quest:
-	var quest_id: String
-	var title: String
-	var description: String
-	var giver_npc: String
-	var is_active: bool = false
-	var is_completed: bool = false
-	var progress: int = 0  # 0-100
-	var objectives: Array[String] = []
-	var current_objective_index: int = 0
-	var reward: Dictionary = {}
+class Approval:
+	var npc_id: String
+	var npc_name: String
+	var is_approved: bool = false
+	var required_trust: int = 30  # Trust >= 30 to approve
+	var quest_type: String  # "food", "decorations", "safety"
 	
-	func _init(p_id: String, p_title: String, p_giver: String):
-		quest_id = p_id
-		title = p_title
-		giver_npc = p_giver
+	func _init(p_id: String, p_name: String, p_type: String):
+		npc_id = p_id
+		npc_name = p_name
+		quest_type = p_type
 
-var quests: Dictionary = {}  # quests[quest_id] = Quest
-var active_quests: Array[String] = []
-var completed_quests: Array[String] = []
+var approvals: Dictionary = {}  # npc_id -> Approval
+var all_approvals_met: bool = false
 
-signal quest_started(quest_id: String)
-signal quest_updated(quest_id: String, progress: int)
-signal quest_completed(quest_id: String, reward: Dictionary)
+signal approval_changed(npc_id: String, is_approved: bool)
+signal all_approvals_met_signal()
+signal party_triggered()
+
+# NPC references for easy access
+var npc_interactions: Dictionary = {}  # npc_id -> npc_interaction node
 
 func _ready():
-	# TODO: Load quests from game data / NPC profiles
-	pass
+	# Define the 3 approval gates
+	approvals["baker"] = Approval.new("baker", "Baker", "food")
+	approvals["merch"] = Approval.new("merch", "Merch", "decorations")
+	approvals["guard"] = Approval.new("guard", "Guard", "safety")
+	
+	print("[QuestManager] Initialized with 3 approval gates")
+	
+	# Find NPC interaction nodes (deferred to let Main.gd create them first)
+	call_deferred("_find_npc_interactions")
 
-func _process(delta):
-	# TODO: Check for quest completion conditions
-	pass
-
-func create_quest(quest_id: String, title: String, giver_npc: String) -> Quest:
-	# TODO: Create a new quest
-	var new_quest = Quest.new(quest_id, title, giver_npc)
-	quests[quest_id] = new_quest
-	print("Quest created: %s" % title)
-	return new_quest
-
-func start_quest(quest_id: String):
-	# TODO: Activate a quest
-	if quests.has(quest_id):
-		quests[quest_id].is_active = true
-		active_quests.append(quest_id)
-		quest_started.emit(quest_id)
-		print("Quest started: %s" % quests[quest_id].title)
-
-func update_quest_progress(quest_id: String, progress_delta: int):
-	# TODO: Update quest progress
-	if quests.has(quest_id):
-		var quest = quests[quest_id]
-		quest.progress = clampi(quest.progress + progress_delta, 0, 100)
-		quest_updated.emit(quest_id, quest.progress)
-		print("Quest %s progress: %d%%" % [quest.title, quest.progress])
+func _find_npc_interactions() -> void:
+	"""Find all NPC interaction components"""
+	await get_tree().create_timer(0.5).timeout  # Give Main.gd time to setup
+	
+	for npc in get_tree().get_nodes_in_group("npc"):
+		var npc_id_value = npc.get("npc_id")
+		var npc_id = str(npc_id_value) if npc_id_value != null else "unknown"
 		
-		# Check if completed
-		if quest.progress >= 100:
-			complete_quest(quest_id)
+		# Look for interaction component
+		var interaction = npc.get_node_or_null("NPC_Interaction")
+		if interaction and interaction.has_signal("relationship_changed"):
+			npc_interactions[npc_id] = interaction
+			interaction.relationship_changed.connect(_on_npc_relationship_changed)
+			print("[QuestManager] Connected to %s" % npc_id)
+		else:
+			# NPCs might not have interaction yet, try the NPC node itself
+			if npc.has_signal("relationship_changed"):
+				npc_interactions[npc_id] = npc
+				print("[QuestManager] Connected directly to NPC %s" % npc_id)
 
-func advance_objective(quest_id: String):
-	# TODO: Move to next objective in a quest
-	if quests.has(quest_id):
-		var quest = quests[quest_id]
-		if quest.current_objective_index < quest.objectives.size() - 1:
-			quest.current_objective_index += 1
-			print("Objective advanced in quest %s" % quest.title)
+func _on_npc_relationship_changed(npc_id: String, new_value: int, delta: int):
+	"""Called when an NPC's relationship changes"""
+	
+	# Check each approval gate
+	for approval_id in approvals.keys():
+		var approval = approvals[approval_id]
+		if approval.npc_id == npc_id:
+			# Check if they've reached the approval threshold
+			var was_approved = approval.is_approved
+			approval.is_approved = (new_value >= approval.required_trust)
+			
+			if approval.is_approved and not was_approved:
+				print("[QuestManager] %s approved! (trust: %d)" % [approval.npc_name, new_value])
+				approval_changed.emit(npc_id, true)
+				_check_all_approvals()
+			elif not approval.is_approved and was_approved:
+				print("[QuestManager] %s approval lost! (trust: %d)" % [approval.npc_name, new_value])
+				approval_changed.emit(npc_id, false)
+				all_approvals_met = false
 
-func complete_quest(quest_id: String):
-	# TODO: Mark quest as complete and award rewards
-	if quests.has(quest_id):
-		var quest = quests[quest_id]
-		quest.is_completed = true
-		active_quests.erase(quest_id)
-		completed_quests.append(quest_id)
-		
-		# TODO: Award relationship bonus to giver NPC
-		# TODO: Award items/rewards
-		
-		quest_completed.emit(quest_id, quest.reward)
-		print("Quest completed: %s" % quest.title)
+func _check_all_approvals() -> void:
+	"""Check if all 3 approvals are met"""
+	var all_met = true
+	for approval in approvals.values():
+		if not approval.is_approved:
+			all_met = false
+			break
+	
+	if all_met and not all_approvals_met:
+		all_approvals_met = true
+		print("[QuestManager] ✨ ALL APPROVALS MET! Party unlock!")
+		all_approvals_met_signal.emit()
+		trigger_party()
 
-func get_quest(quest_id: String) -> Quest:
-	# TODO: Get quest object
-	if quests.has(quest_id):
-		return quests[quest_id]
+func trigger_party():
+	"""Trigger the party scene / celebration"""
+	print("[QuestManager] 🎉 PARTY TRIGGERED!")
+	party_triggered.emit()
+	
+	# Load party scene
+	get_tree().change_scene_to_file("res://scenes/Party.tscn")
+
+func get_approval(npc_id: String) -> Approval:
+	"""Get approval status for an NPC"""
+	for approval in approvals.values():
+		if approval.npc_id == npc_id:
+			return approval
 	return null
 
-func get_active_quests() -> Array[String]:
-	# TODO: Return list of active quest IDs
-	return active_quests.duplicate()
+func is_approved(npc_id: String) -> bool:
+	"""Check if a specific NPC has approved"""
+	var approval = get_approval(npc_id)
+	return approval != null and approval.is_approved
 
-func get_npc_quests(npc_id: String) -> Array[String]:
-	# TODO: Get all quests from a specific NPC
-	var npc_quests: Array[String] = []
-	for quest_id in quests.keys():
-		if quests[quest_id].giver_npc == npc_id:
-			npc_quests.append(quest_id)
-	return npc_quests
+func get_all_approvals() -> Dictionary:
+	"""Get all approval statuses"""
+	return approvals.duplicate()
 
-func is_quest_active(quest_id: String) -> bool:
-	# TODO: Check if a quest is currently active
-	return quest_id in active_quests
-
-func is_quest_completed(quest_id: String) -> bool:
-	# TODO: Check if a quest is completed
-	return quest_id in completed_quests
-
-func get_quest_progress(quest_id: String) -> int:
-	# TODO: Get current progress of a quest (0-100)
-	if quests.has(quest_id):
-		return quests[quest_id].progress
-	return 0
-
-func abandon_quest(quest_id: String):
-	# TODO: Option to cancel an active quest
-	if quests.has(quest_id):
-		var quest = quests[quest_id]
-		quest.is_active = false
-		active_quests.erase(quest_id)
-		print("Quest abandoned: %s" % quest.title)
-
-# TODO: Implement these methods
-# - link_quest_to_dialogue(quest_id: String, npc_id: String, dialogue_trigger: String)
-#   Trigger quest progress when player says something specific
-#
-# - get_current_objective(quest_id: String) -> String
-#   Display current quest objective to player
-#
-# - save_quest_state() -> Dictionary
-#   Serialize all quest progress for persistence
-#
-# - load_quest_state(state: Dictionary)
-#   Restore quest progress from save file
+func get_approval_progress() -> int:
+	"""Return number of approvals obtained (0-3)"""
+	var count = 0
+	for approval in approvals.values():
+		if approval.is_approved:
+			count += 1
+	return count

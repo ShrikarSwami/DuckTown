@@ -1,5 +1,6 @@
-[gd_scene format=3 uid="uid://c4cfqlf3rwees"]
+[gd_scene load_steps=4 format=3 uid="uid://c4cfqlf3rwees"]
 
+[ext_resource type="Script" path="res://scripts/npc.gd" id="1_npc_script"]
 [ext_resource type="Texture2D" uid="uid://rcwoe1limwwd" path="res://assets/sprites/characters/Characters/Baker_Character.png" id="2_ktgr7"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_jnjht"]
@@ -8,7 +9,8 @@ size = Vector2(10, 7)
 [sub_resource type="CircleShape2D" id="CircleShape2D_7pv12"]
 radius = 30.864916
 
-[node name="Npc" type="CharacterBody2D" unique_id=1036836631]
+[node name="Npc" type="CharacterBody2D" unique_id=1036836631 groups=["npc"]]
+script = ExtResource("1_npc_script")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=2062374654]
 position = Vector2(0, 21.25)

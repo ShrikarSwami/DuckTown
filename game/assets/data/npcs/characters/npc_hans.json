@@ -1,0 +1,66 @@
+{
+  "id": "npc_hans",
+  "class": "Npc",
+  "name": "Hans",
+  "role": "Baker",
+  "oneLineVibe": "a stubborn older man",
+  "coreTraits": [
+    "set in his ways",
+    "stubborn and mean",
+    "sometimes wise"
+  ],
+  "tasks": {
+    "publicTasks": [
+      "Make the food for the event."
+    ],
+    "dependencies": []
+  },
+  "pressurePoints": {
+    "fearsOrPressurePoint": "He acts tough but wants people to like him.",
+    "whatMakesHimFold": "Feeling genuinely appreciated for his cooking or being publicly embarrassed about it."
+  },
+  "goals": {
+    "whatTheyWantFromDuckParty": "People to like his food.",
+    "mayorGoalForThem": "Make good food for the party."
+  },
+  "relationships": {
+    "dealBreakers": [],
+    "friends": [
+      "npc_olaf",
+      "npc_peta"
+    ],
+    "disliked_ppl": [
+      "npc_vince",
+      "npc_patrica",
+      "npc_sheldon",
+      "npc_amy"
+    ],
+    "secretRespect": [],
+    "notes": [
+      "He is not well-liked for being old and mean.",
+      "Historian (Peta) likes him because they are both older / work-buddy energy."
+    ]
+  },
+  "secrets": {
+    "mildSecret": "He has a secret cookbook with his recipes.",
+    "spicySafeSecret": "He has a secret ingredient that makes everyone he doesn’t like throw up.",
+    "secretTaskHidden": null
+  },
+  "rumorBehavior": {
+    "spreadsRumors": true,
+    "accuracyMinPercent": 50,
+    "accuracyMaxPercent": 90,
+    "talksToAtLeast": 0,
+    "spreadStyle": "reluctant-gossip",
+    "notes": "Doesn’t talk much, but if pushed he will share."
+  },
+  "speechStyle": {
+    "tone": "gruff old-person speak",
+    "length": "short",
+    "catchphrasesOrTicks": []
+  },
+  "difficulty": {
+    "howEasyToConvince": "high",
+    "pointsRequired": 6
+  }
+}

@@ -1,0 +1,73 @@
+{
+  "id": "npc_olaf",
+  "class": "Npc",
+  "name": "Olaf",
+  "role": "Mean Guard / Safety",
+  "oneLineVibe": "like the mean version of the cop from the Lego movie",
+  "coreTraits": [
+    "strict",
+    "demanding",
+    "firm"
+  ],
+  "tasks": {
+    "publicTasks": [
+      "Ask if people’s tasks are safe.",
+      "Create a safety presentation."
+    ],
+    "dependencies": [
+      {
+        "type": "coordination",
+        "withNpcId": "npc_leonard",
+        "description": "Works alongside Leonard on safety checks and presentation."
+      }
+    ]
+  },
+  "pressurePoints": {
+    "fearsOrPressurePoint": "No one being scared of him.",
+    "whatMakesHimFold": "Being openly disrespected or laughed at."
+  },
+  "goals": {
+    "whatTheyWantFromDuckParty": "Everyone follows the mayor’s instructions.",
+    "mayorGoalForThem": "Keep the event safe and make good presentations."
+  },
+  "relationships": {
+    "dealBreakers": [
+      "npc_vince"
+    ],
+    "friends": [
+      "npc_leonard"
+    ],
+    "disliked_ppl": [
+      "npc_patrica"
+    ],
+    "secretRespect": [
+      "npc_hans"
+    ],
+    "notes": [
+      "Sees through Patrica’s fake niceness.",
+      "Both Olaf and Hans are a little mean, which Olaf respects."
+    ]
+  },
+  "secrets": {
+    "mildSecret": "He likes girly pop music.",
+    "spicySafeSecret": "He is scared of Julio (the rival event organizer).",
+    "secretTaskHidden": null
+  },
+  "rumorBehavior": {
+    "spreadsRumors": true,
+    "accuracyMinPercent": 40,
+    "accuracyMaxPercent": 60,
+    "talksToAtLeast": 2,
+    "spreadStyle": "warning-and-enforcement",
+    "notes": "Talks to a lot of people; tends to spread rumors as 'alerts' or 'warnings'."
+  },
+  "speechStyle": {
+    "tone": "short and blunt",
+    "length": "short",
+    "catchphrasesOrTicks": []
+  },
+  "difficulty": {
+    "howEasyToConvince": "high",
+    "pointsRequired": 6
+  }
+}

@@ -1,0 +1,69 @@
+{
+  "id": "npc_kwa",
+  "_comment": "This is the mayor of DuckTown, Kwa. He is a klutz with false bravado who is desperate for approval. He is the son of the old mayor and is trying to establish himself in the city by hosting the annual Duck Party. He assigns the player their initial mission and has several tasks that need to be completed before the party can start. He is easily convinced but becomes anxious if approvals are blocked and there is suspicion that the party will fail.",
+  "class": "Mayor",
+  "name": "Kwa",
+  "role": "Mayor of DuckTown",
+  "oneLineVibe": "typically politician",
+  "coreTraits": [
+    "klutz",
+    "desperate for approval",
+    "false bravado"
+  ],
+  "story": {
+    "backstory": "New mayor of DuckTown; identifies with the player because both are new. The annual Duck Party tradition has gotten worse each year. Last year there was an 'Incident' that removed the previous mayor.",
+    "mildSecret": "There is a rival event organizer involved this year.",
+    "spicySafeSecret": "He is the son of the old mayor."
+  },
+  "tasks": {
+    "publicTasks": [
+      "Assign the player their initial mission when the game begins.",
+      "After the player talks to three people, tell the player about the rival event organizer.",
+      "When all required approvals are completed, begin the party."
+    ],
+    "questGates": [
+      {
+        "gateId": "start_party",
+        "requires": [
+          "cupcakes_approved",
+          "signs_approved",
+          "venue_approved"
+        ],
+        "onFail": "Mayor delays approval and becomes more anxious."
+      }
+    ]
+  },
+  "pressurePoints": {
+    "fearsOrPressurePoint": "Believing the party is going to fail.",
+    "whatMakesHimFold": "Multiple approvals blocked and rising suspicion that the party will flop."
+  },
+  "goals": {
+    "whatHeWantsFromDuckParty": "Establishment in the city; his main goal is appreciation.",
+    "mayoralGoalForHim": "Start the party only after tasks and approvals are complete."
+  },
+  "relationships": {
+    "guardsWorkDirectlyForHim": true,
+    "knowsEveryoneSurfaceLevel": true,
+    "everyoneWaryOfHim": true,
+    "dealBreakers": [],
+    "friend": null,
+    "secretRespect": null
+  },
+  "rumorBehavior": {
+    "spreadsRumors": false,
+    "reactsToRumors": true,
+    "notes": "Mayor does not spread rumors; he reacts to world suspicion and approval state."
+  },
+  "speechStyle": {
+    "tone": "grandiose, well-educated, cautious",
+    "catchphrasesOrTicks": [
+      "Ermm.. well you know…",
+      "I think …"
+    ],
+    "length": "medium"
+  },
+  "difficulty": {
+    "howEasyToConvince": "high",
+    "pointsRequired": 6
+  }
+}

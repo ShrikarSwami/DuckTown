@@ -1,5 +1,7 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
+const DEFAULT_GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+
 // TODO: Initialize Gemini client from environment
 const initializeGemini = () => {
   const apiKey = process.env.GEMINI_API_KEY;
@@ -90,39 +92,158 @@ async function callGemini(gameRequest) {
     
     const err = new Error('Gemini API call failed: ' + error.message);
     err.code = 'GEMINI_API_ERROR';
+    err.httpStatus = error.httpStatus || null;
+    err.upstreamMessage = error.upstreamMessage || error.message;
     throw err;
   }
 }
 
 /**
  * Actually call the Gemini API
- * TODO: Remove placeholder and implement real API call
+ * Calls Google's Gemini 2.0 Flash model and parses JSON response
  */
 async function callGeminiAPI(systemPrompt, conversationHistory, userMessage) {
-  // TODO: Implement actual Gemini API call
-  // This is a placeholder that returns validation-passing response
+  if (!geminiClient) {
+    throw new Error('Gemini client not initialized');
+  }
   
-  // Get the model
-  // const model = geminiClient.getGenerativeModel({ model: 'gemini-2.0-flash' });
-  // const result = await model.generateContent([...conversationHistory, userMessage]);
+  try {
+    const modelName = DEFAULT_GEMINI_MODEL;
+    const endpointBase = 'https://generativelanguage.googleapis.com';
+    const endpointPath = `/v1beta/models/${modelName}:generateContent`;
+    const endpointUrl = `${endpointBase}${endpointPath}`;
+
+    // Get the Gemini model
+    const model = geminiClient.getGenerativeModel({ model: modelName });
+    
+    // Build the full message array with system prompt as first message
+    const messages = [
+      {
+        role: "user",
+        parts: [{ text: systemPrompt }]
+      },
+      ...conversationHistory,
+      userMessage
+    ];
+    
+    console.log(`[callGeminiAPI] Sending request to Gemini with ${conversationHistory.length} history messages`);
+    console.log(`[callGeminiAPI] Request URL: ${endpointUrl}`);
+    console.log(`[callGeminiAPI] Model: ${modelName}`);
+    console.log(`[callGeminiAPI] GEMINI_API_KEY present: ${Boolean(process.env.GEMINI_API_KEY)} (length=${(process.env.GEMINI_API_KEY || '').length})`);
+    
+    // Call the Gemini API
+    const result = await model.generateContent({ contents: messages });
+    
+    // Extract the text response
+    const responseText = result.response.text();
+    console.log(`[callGeminiAPI] Raw Gemini response: ${responseText.substring(0, 200)}...`);
+    
+    // Parse JSON from the response
+    const parsedResponse = extractAndParseJSON(responseText);
+    
+    if (!parsedResponse) {
+      console.warn('[callGeminiAPI] Failed to extract JSON from response, using fallback');
+      return buildFallbackResponse(responseText);
+    }
+    
+    // Ensure required fields exist
+    const validatedResponse = {
+      success: true,
+      npc_reply: parsedResponse.npc_reply || "...",
+      relationship_delta: parseInt(parsedResponse.relationship_delta) || 0,
+      rumor: parsedResponse.rumor || null,
+      quest_progress: parsedResponse.quest_progress || null,
+      npc_mood_change: parsedResponse.npc_mood_change || "neutral"
+    };
+    
+    console.log(`[callGeminiAPI] Successfully parsed Gemini response`);
+    return validatedResponse;
+    
+  } catch (error) {
+    const rawMessage = error?.message || '';
+    const statusMatch = rawMessage.match(/\[(\d{3})\s[^\]]+\]/);
+    const parsedStatusCode = statusMatch ? parseInt(statusMatch[1], 10) : null;
+    const statusCode = parsedStatusCode || error?.status || error?.statusCode || error?.response?.status || null;
+    const responseBody = error?.response?.data || error?.errorDetails || error?.details || error?.body || rawMessage || null;
+    const networkCode = error?.code || null;
+
+    console.error('[callGeminiAPI] Error calling Gemini API:', error.message);
+    console.error('[callGeminiAPI] Error diagnostics:', {
+      statusCode,
+      networkCode,
+      message: error?.message || null,
+      responseBody
+    });
+
+    error.httpStatus = statusCode;
+    error.upstreamMessage = rawMessage;
+    throw error;
+  }
+}
+
+/**
+ * Extract and parse JSON from Gemini response text
+ * Handles cases where Gemini wraps JSON in markdown code blocks
+ */
+function extractAndParseJSON(responseText) {
+  if (!responseText) return null;
   
-  // For now, return placeholder response that passes validation
+  try {
+    // Try 1: Direct JSON parse (response is pure JSON)
+    try {
+      return JSON.parse(responseText);
+    } catch (e) {
+      // Continue to next attempt
+    }
+    
+    // Try 2: Extract from markdown code block
+    const jsonMatch = responseText.match(/```json\s*([\s\S]*?)\s*```/);
+    if (jsonMatch && jsonMatch[1]) {
+      return JSON.parse(jsonMatch[1]);
+    }
+    
+    // Try 3: Extract from plain code block
+    const codeMatch = responseText.match(/```\s*([\s\S]*?)\s*```/);
+    if (codeMatch && codeMatch[1]) {
+      return JSON.parse(codeMatch[1]);
+    }
+    
+    // Try 4: Find JSON object using braces
+    const braceStart = responseText.indexOf('{');
+    const braceEnd = responseText.lastIndexOf('}');
+    if (braceStart !== -1 && braceEnd !== -1 && braceEnd > braceStart) {
+      const jsonString = responseText.substring(braceStart, braceEnd + 1);
+      return JSON.parse(jsonString);
+    }
+    
+    return null;
+    
+  } catch (error) {
+    console.warn(`[extractAndParseJSON] Failed to parse: ${error.message}`);
+    return null;
+  }
+}
+
+/**
+ * Build a fallback response when JSON parsing fails
+ * Extracts what we can from the response text
+ */
+function buildFallbackResponse(responseText) {
+  console.warn('[buildFallbackResponse] Using fallback response structure');
+  
   return {
     success: true,
-    npc_reply: "TODO: Implement Gemini API call in callGeminiAPI(). This is a placeholder response.",
+    npc_reply: responseText.substring(0, 200) || "I... I don't know what to say.",
     relationship_delta: 0,
     rumor: null,
     quest_progress: null,
-    npc_mood_change: "neutral",
-    metadata: {
-      model_used: "gemini-2.0-flash",
-      tokens_used: 0
-    }
+    npc_mood_change: "confused"
   };
 }
 
 /**
  * Build system prompt that defines NPC personality and constraints
+ * Emphasizes JSON response format to maximize model compliance
  */
 function buildSystemPrompt(npcName, personality, relationship, rumors) {
   const { traits = [], speech_pattern = "natural", current_mood = "neutral" } = personality;
@@ -132,35 +253,37 @@ function buildSystemPrompt(npcName, personality, relationship, rumors) {
                               relationship > -50 ? "doesn't trust the player" :
                               "dislikes the player";
   
-  return `You are roleplaying as ${npcName} in a small duck-obsessed town.
-
-Personality Traits: ${traits.join(", ") || "unknown"}
-Speech Pattern: ${speech_pattern}
+  return `ROLE: You are ${npcName} in a small duck-obsessed town.
+Traits: ${traits.join(", ") || "unknown"}
+Speech: ${speech_pattern}
 Current Mood: ${current_mood}
-Relationship with Player: ${relationship}/100 (${relationshipContext})
+Player Relationship: ${relationship}/100 (${relationshipContext})
 
-Your known rumors about town:
-${rumors.map((r, i) => `${i + 1}. "${r.text}" (tags: ${r.tags?.join(", ")})`).join("\n") || "- None"}
+KNOWN RUMORS:
+${rumors && rumors.length > 0 ? rumors.map((r, i) => `${i + 1}. "${r.text}" (${r.tags?.join(", ") || "general"})`).join("\n") : "None yet"}
 
-IMPORTANT INSTRUCTIONS:
-1. Respond in character, brief and natural (under 150 characters)
-2. Your response MUST be valid JSON with these exact fields:
-   - npc_reply: Your character's dialogue (string, required)
-   - rumor: Optional new rumor (object with: text, tags, confidence)
-   - relationship_delta: Change to player relationship (-50 to 50, integer)
-   - quest_progress: Optional quest update (object)
-   - npc_mood_change: Your mood after this interaction (string)
+TASK: Respond briefly (under 150 characters) as your character, then output JSON.
 
-3. JSON Format Example:
+RESPONSE FORMAT - YOU MUST OUTPUT EXACTLY THIS JSON STRUCTURE:
 {
-  "npc_reply": "That sounds interesting...",
-  "rumor": {"text": "something I heard", "tags": ["gossip"], "confidence": 0.6},
-  "relationship_delta": 5,
-  "npc_mood_change": "curious"
+  "npc_reply": "Your dialogue here",
+  "relationship_delta": 0,
+  "rumor": null,
+  "quest_progress": null,
+  "npc_mood_change": "neutral"
 }
 
-4. ALWAYS return valid JSON, never plain text
-5. If something doesn't make sense, politely decline in character`;
+RULES:
+1. First, write your brief dialogue response
+2. Then output the JSON on a new line
+3. relationship_delta must be an integer from -50 to 50
+4. rumor can be null OR {"text": "...", "tags": ["tag1"], "confidence": 0.5}
+5. npc_mood_change is a single mood word (happy, curious, annoyed, etc)
+6. ALWAYS include ALL fields in the JSON
+7. NO markdown code blocks - just pure JSON
+8. Be consistent with your personality
+
+START YOUR RESPONSE NOW WITH DIALOGUE, THEN JSON:`;
 }
 
 /**
@@ -171,7 +294,7 @@ function buildConversationHistory(dialogueHistory) {
   // Each message should be formatted as { role: "user"|"assistant", content: "text" }
   
   return dialogueHistory.map(msg => ({
-    role: msg.role === "player" ? "user" : "assistant",
+    role: msg.role === "player" ? "user" : "model",
     parts: [{ text: msg.text }]
   }));
 }

@@ -1,0 +1,68 @@
+{
+  "id": "npc_patrica",
+  "class": "Npc",
+  "name": "Patrica",
+  "role": "Gossip / Social Hub",
+  "oneLineVibe": "nice, but loves to talk (wine mom energy)",
+  "coreTraits": [
+    "innocent talker",
+    "brash opinions",
+    "unfunny personal jokes"
+  ],
+  "tasks": {
+    "publicTasks": [
+      "Talk to at least 2 characters (besides the player) and spread rumors."
+    ],
+    "dependencies": []
+  },
+  "pressurePoints": {
+    "fearsOrPressurePoint": "Being told she’s annoying directly or being confronted with truth that breaks her viewpoint.",
+    "whatMakesHerFold": "Direct blunt rejection or being called out in a way she can’t spin."
+  },
+  "goals": {
+    "whatTheyWantFromDuckParty": "More gossip and drama (implicitly to spread more lies).",
+    "mayorGoalForThem": "Talk to as few characters as possible."
+  },
+  "relationships": {
+    "dealBreakers": [
+      "npc_olaf",
+      "npc_hans"
+    ],
+    "friends": [
+      "npc_leonard"
+    ],
+    "disliked_ppl": [],
+    "secretRespect": [
+      "npc_vince"
+    ],
+    "notes": [
+      "Leonard listens to her, which she loves.",
+      "She clashes with Olaf because he shuts down her gossip."
+    ]
+  },
+  "secrets": {
+    "mildSecret": "The musician (Vince) is her child.",
+    "spicySafeSecret": "She knows a random character’s spicy secret (not Julio’s).",
+    "secretTaskHidden": null
+  },
+  "rumorBehavior": {
+    "spreadsRumors": true,
+    "accuracyMinPercent": 30,
+    "accuracyMaxPercent": 50,
+    "talksToAtLeast": 2,
+    "spreadStyle": "dramatic-twist",
+    "notes": "Frequently retells only part of the story and adds her own spin."
+  },
+  "speechStyle": {
+    "tone": "dramatic, chatty",
+    "length": "long",
+    "catchphrasesOrTicks": [
+      "Well you know how it is…",
+      "I absolutely love how you…"
+    ]
+  },
+  "difficulty": {
+    "howEasyToConvince": "medium",
+    "pointsRequired": 4
+  }
+}
