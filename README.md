@@ -1,5 +1,7 @@
 # Duck Party Rumor Game
 
+# Demo: https://youtu.be/uarb4KIBCAo
+
 **A chaotic 2D top-down social simulation game where rumors and relationships determine the story.**
 
 ## Team Members
