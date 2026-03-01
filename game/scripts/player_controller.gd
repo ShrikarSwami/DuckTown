@@ -47,6 +47,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		if dialogue_ui.has_method("is_open") and dialogue_ui.is_open():
 			should_block_movement = true
 	
+	# Also check if LineEdit has focus
+	if not should_block_movement:
+		var focus_owner = get_viewport().gui_get_focus_owner()
+		if focus_owner is LineEdit:
+			should_block_movement = true
+	
 	if event.is_action_pressed("interact"):
 		if VERBOSE_DEBUG:
 			print("[Player] Interact pressed")
@@ -56,7 +62,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		_force_open_baker_dialogue()
 		get_viewport().set_input_as_handled()
 	
-	# Block movement input while dialogue open
+	# Block movement input while dialogue open or LineEdit focused
 	if event is InputEventKey and should_block_movement:
 		var keycode = event.keycode
 		if keycode in [KEY_W, KEY_A, KEY_S, KEY_D, KEY_UP, KEY_LEFT, KEY_DOWN, KEY_RIGHT]:
