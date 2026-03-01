@@ -10,6 +10,7 @@ var _hint_label: Label
 var _dialogue_panel: Control
 var _npc_name_label: Label
 var _chat_log: RichTextLabel
+var _scroll_container: ScrollContainer
 var _user_input: LineEdit
 var _send_button: Button
 var _options_container: VBoxContainer
@@ -51,6 +52,7 @@ func _ready() -> void:
 
 
 func _setup_dialogue_panel() -> void:
+	_scroll_container = _dialogue_panel.find_child("ScrollContainer", true, false) as ScrollContainer
 	_chat_log = _dialogue_panel.find_child("ChatLog", true, false) as RichTextLabel
 	_user_input = _dialogue_panel.find_child("UserInput", true, false) as LineEdit
 	_send_button = _dialogue_panel.find_child("SendButton", true, false) as Button
@@ -60,13 +62,17 @@ func _setup_dialogue_panel() -> void:
 	if panel_parent != null:
 		panel_parent.clip_contents = false
 
+	if _scroll_container != null:
+		_scroll_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		_scroll_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
+
 	if _chat_log != null:
-		_chat_log.autowrap_mode = TextServer.AUTOWRAP_WORD
-		_chat_log.fit_content = true
+		_chat_log.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		_chat_log.fit_content = false
 		_chat_log.scroll_active = false
+		_chat_log.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		_chat_log.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		if _chat_log.custom_minimum_size.y < 180.0:
-			_chat_log.custom_minimum_size.y = 180.0
+		_chat_log.clip_contents = false
 
 	if _npc_name_label == null:
 		_npc_name_label = _dialogue_panel.find_child("NameLabel", true, false) as Label
@@ -148,6 +154,10 @@ func open_for_npc(npc: Node) -> void:
 	print("[DialogueUI] z_index:", z_index)
 	print("[DialogueUI] parent:", get_parent().name)
 	print("[DialogueUI] parent type:", get_parent().get_class())
+	if _chat_log != null:
+		print("[DialogueUI] chatlog size:", _chat_log.size)
+	if _scroll_container != null:
+		print("[DialogueUI] scrollcontainer size:", _scroll_container.size)
 	print("====================================")
 
 	# ===== FORCE CENTER POSITION TEST =====
@@ -252,7 +262,8 @@ func _submit_player_text(raw_text: String) -> void:
 
 	_waiting_for_response = true
 	_append_chat_line("You", message)
-	_append_chat_line("System", "Waiting for response…")
+	var npc_name := _get_npc_display_name()
+	_append_chat_line(npc_name, "thinking...")
 	_clear_options()
 
 	if _user_input != null:
@@ -272,7 +283,8 @@ func set_npc_reply(reply_text: String) -> void:
 
 	if VERBOSE_DEBUG:
 		print("[DialogueUI] Received reply length=%d" % safe_reply.length())
-	_append_chat_line("NPC", safe_reply)
+	var npc_name := _get_npc_display_name()
+	_append_chat_line(npc_name, safe_reply)
 	_waiting_for_response = false
 
 	if _user_input != null:
@@ -289,7 +301,8 @@ func show_error(error_msg: String) -> void:
 	safe_msg = safe_msg.strip_edges()
 	if safe_msg.is_empty():
 		safe_msg = "Something went wrong."
-	_append_chat_line("NPC", safe_msg)
+	var npc_name := _get_npc_display_name()
+	_append_chat_line(npc_name, safe_msg)
 	_waiting_for_response = false
 	if _user_input != null:
 		_user_input.editable = true
@@ -391,7 +404,11 @@ func _append_chat_line(speaker: String, text: String) -> void:
 		_chat_log.text = line
 	else:
 		_chat_log.text += "\n" + line
-	_chat_log.scroll_to_line(max(_chat_log.get_line_count() - 1, 0))
+	
+	# Scroll chat log to bottom
+	await get_tree().process_frame
+	if _scroll_container != null:
+		_scroll_container.scroll_vertical = int(_scroll_container.get_v_scroll_bar().max_value)
 	
 	if VERBOSE_DEBUG:
 		# ===== CHATLOG POPULATION DEBUG =====
@@ -469,6 +486,15 @@ func _get_phase_aware_options() -> Array[String]:
 				break
 
 	return options
+
+
+func _get_npc_display_name() -> String:
+	if _current_npc == null:
+		return "NPC"
+	var display_name := ""
+	if _current_npc.get("display_name") != null:
+		display_name = str(_current_npc.get("display_name"))
+	return display_name if display_name != "" else _current_npc.name
 
 
 func _clear_options() -> void:
