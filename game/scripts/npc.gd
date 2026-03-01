@@ -1,5 +1,7 @@
 extends CharacterBody2D
 
+const VERBOSE_DEBUG := false
+
 @export var npc_id: String = "npc_generic"
 @export var display_name: String = "Citizen"
 @export_file("*.json") var profile_json_path: String = ""

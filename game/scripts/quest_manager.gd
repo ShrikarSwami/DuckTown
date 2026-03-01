@@ -17,6 +17,7 @@ class Approval:
 
 var approvals: Dictionary = {}  # npc_id -> Approval
 var all_approvals_met: bool = false
+var _victory_triggered: bool = false
 
 # Demo path tracking
 var demo_phase: int = 0  # 0=start, 1=talked_to_baker, 2=talked_to_merch, 3=ready_for_guard
@@ -118,26 +119,33 @@ func _emit_approvals_updated() -> void:
 		print("[QuestManager] approvals_updated emitted: baker=%s merch=%s meanGuard=%s count=%d" % [baker_ok, merch_ok, mean_guard_ok, count])
 
 func _check_all_approvals() -> void:
-	"""Check if all 3 approvals are met"""
-	var all_met = true
-	for approval in approvals.values():
-		if not approval.is_approved:
-			all_met = false
-			break
-	
+	"""Check if all 3 required approvals are met."""
+	var baker_ok := approvals.has("baker") and approvals["baker"].is_approved
+	var merch_ok := approvals.has("merch") and approvals["merch"].is_approved
+	var mean_guard_ok := approvals.has("meanGuard") and approvals["meanGuard"].is_approved
+	var all_met := baker_ok and merch_ok and mean_guard_ok
+
 	if all_met and not all_approvals_met:
 		all_approvals_met = true
 		print("[DemoPhase] ✨ ALL APPROVALS MET! Party unlock!")
 		all_approvals_met_signal.emit()
-		trigger_party()
+		trigger_victory()
 
-func trigger_party():
-	"""Trigger the party scene / celebration"""
-	print("[QuestManager] 🎉 PARTY TRIGGERED!")
+func trigger_victory() -> void:
+	"""Single-fire transition to Party scene when all approvals are met."""
+	if _victory_triggered:
+		if VERBOSE_DEBUG:
+			print("[QuestManager] Victory already triggered, ignoring duplicate call")
+		return
+
+	_victory_triggered = true
+	print("[VERIFY] All approvals met -> starting Party scene")
 	party_triggered.emit()
-	
-	# Load party scene
-	get_tree().change_scene_to_file("res://scenes/Party.tscn")
+
+	var err := get_tree().change_scene_to_file("res://scenes/Party.tscn")
+	if err != OK:
+		push_error("[QuestManager] Failed to load Party scene")
+		_victory_triggered = false
 
 func get_approval(npc_id: String) -> Approval:
 	"""Get approval status for an NPC"""

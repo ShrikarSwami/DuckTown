@@ -142,7 +142,7 @@ async function callGeminiAPI(systemPrompt, conversationHistory, userMessage) {
     const result = await model.generateContent({
       contents: messages,
       generationConfig: {
-        maxOutputTokens: 800,
+        maxOutputTokens: 600,  // Increased safe limit for NPC dialogue
         temperature: 0.7
       }
     });
@@ -411,8 +411,10 @@ function buildFallbackResponse(responseText) {
   }
   reply = reply.replace(/^npc_reply\s*:?\s*/i, '').trim();
   
+  console.log(`[buildFallbackResponse] Fallback reply length: ${reply.length} chars`);
+  
   return normalizeGeminiResponse({
-    npc_reply: reply.substring(0, 200),
+    npc_reply: reply,  // No truncation - let normalizeGeminiResponse handle length
     relationship_delta: 0,
     rumor: null,
     quest_progress: null,

@@ -137,58 +137,24 @@ theme_override_font_sizes/font_size = 18
 text = "Party Preparations"
 horizontal_alignment = 1
 
-[node name="ProgressBar" type="ProgressBar" parent="Hud/ProgressTracker/MarginContainer/VBoxContainer"]
-custom_minimum_size = Vector2(0, 24)
-layout_mode = 2
-max_value = 3.0
-step = 1.0
-show_percentage = false
-
-[node name="Separator" type="HSeparator" parent="Hud/ProgressTracker/MarginContainer/VBoxContainer"]
-layout_mode = 2
-
 [node name="TaskList" type="VBoxContainer" parent="Hud/ProgressTracker/MarginContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_constants/separation = 6
+theme_override_constants/separation = 8
 
-[node name="Task1" type="HBoxContainer" parent="Hud/ProgressTracker/MarginContainer/VBoxContainer/TaskList"]
-layout_mode = 2
-
-[node name="CheckBox" type="Label" parent="Hud/ProgressTracker/MarginContainer/VBoxContainer/TaskList/Task1"]
-custom_minimum_size = Vector2(24, 0)
-layout_mode = 2
-theme_override_font_sizes/font_size = 16
-text = "☐"
-
-[node name="TaskLabel" type="Label" parent="Hud/ProgressTracker/MarginContainer/VBoxContainer/TaskList/Task1"]
+[node name="BakerLabel" type="Label" parent="Hud/ProgressTracker/MarginContainer/VBoxContainer/TaskList"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 14
 text = "Get Baker's approval"
+theme_override_colors/font_color = Color(1.0, 0.2, 0.2, 1.0)
 
-[node name="Task2" type="HBoxContainer" parent="Hud/ProgressTracker/MarginContainer/VBoxContainer/TaskList"]
-layout_mode = 2
-
-[node name="CheckBox" type="Label" parent="Hud/ProgressTracker/MarginContainer/VBoxContainer/TaskList/Task2"]
-custom_minimum_size = Vector2(24, 0)
-layout_mode = 2
-theme_override_font_sizes/font_size = 16
-text = "☐"
-
-[node name="TaskLabel" type="Label" parent="Hud/ProgressTracker/MarginContainer/VBoxContainer/TaskList/Task2"]
+[node name="MerchLabel" type="Label" parent="Hud/ProgressTracker/MarginContainer/VBoxContainer/TaskList"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 14
 text = "Get Merchant's approval"
+theme_override_colors/font_color = Color(1.0, 0.2, 0.2, 1.0)
 
-[node name="Task3" type="HBoxContainer" parent="Hud/ProgressTracker/MarginContainer/VBoxContainer/TaskList"]
-layout_mode = 2
-
-[node name="CheckBox" type="Label" parent="Hud/ProgressTracker/MarginContainer/VBoxContainer/TaskList/Task3"]
-custom_minimum_size = Vector2(24, 0)
-layout_mode = 2
-theme_override_font_sizes/font_size = 16
-text = "☐"
-
-[node name="TaskLabel" type="Label" parent="Hud/ProgressTracker/MarginContainer/VBoxContainer/TaskList/Task3"]
+[node name="GuardLabel" type="Label" parent="Hud/ProgressTracker/MarginContainer/VBoxContainer/TaskList"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 14
-text = "Get Guard's approval"
+text = "Get Mean Guard's approval"
+theme_override_colors/font_color = Color(1.0, 0.2, 0.2, 1.0)

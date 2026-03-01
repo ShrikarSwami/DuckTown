@@ -6,6 +6,48 @@ function clampNumber(value, min, max) {
   return Math.max(min, Math.min(max, value));
 }
 
+/**
+ * Smart trim text at sentence boundary if exceeds max length
+ * Only used as lightweight safeguard for gameplay readability
+ * @param {string} text - Text to trim
+ * @param {number} maxChars - Maximum character limit (default 500)
+ * @returns {string} Trimmed text
+ */
+function smartTrimAtSentence(text, maxChars = 500) {
+  if (!text || text.length <= maxChars) {
+    return text;
+  }
+
+  console.log(`[smartTrimAtSentence] Text exceeds ${maxChars} chars (${text.length}), trimming at sentence boundary...`);
+
+  // Find last sentence-ending punctuation before maxChars
+  const truncated = text.substring(0, maxChars);
+  const lastPeriod = truncated.lastIndexOf('.');
+  const lastExclaim = truncated.lastIndexOf('!');
+  const lastQuestion = truncated.lastIndexOf('?');
+  
+  const sentenceEnd = Math.max(lastPeriod, lastExclaim, lastQuestion);
+  
+  if (sentenceEnd > maxChars * 0.7) {
+    // Good sentence break found (at least 70% of max length)
+    const trimmed = text.substring(0, sentenceEnd + 1).trim();
+    console.log(`[smartTrimAtSentence] Trimmed from ${text.length} to ${trimmed.length} chars at sentence boundary`);
+    return trimmed;
+  }
+
+  // No good sentence break, trim at last space
+  const lastSpace = truncated.lastIndexOf(' ');
+  if (lastSpace > 0) {
+    const trimmed = text.substring(0, lastSpace).trim();
+    console.log(`[smartTrimAtSentence] Trimmed from ${text.length} to ${trimmed.length} chars at word boundary`);
+    return trimmed;
+  }
+
+  // Last resort: hard cut with ellipsis
+  console.log(`[smartTrimAtSentence] Hard cut from ${text.length} to ${maxChars} chars`);
+  return truncated.trim() + '...';
+}
+
 function toSafeString(value) {
   if (typeof value === 'string') return value;
   if (value === null || value === undefined) return '';
@@ -81,9 +123,18 @@ function normalizeGeminiResponse(response, options = {}) {
   const npcMoodRaw = toSafeString(source.npc_mood_change).trim();
   const npcMood = npcMoodRaw || 'neutral';
 
+  // Apply smart trimming only as lightweight safeguard (prefer not trimming)
+  const finalReply = smartTrimAtSentence(npcReply, 500);
+  
+  // Log character length for verification
+  console.log(`[VERIFY] npc_reply chars=${finalReply.length}`);
+  if (finalReply.length !== npcReply.length) {
+    console.warn(`[normalizeGeminiResponse] Reply was trimmed from ${npcReply.length} to ${finalReply.length} chars`);
+  }
+
   return {
     success: true,
-    npc_reply: npcReply.substring(0, 300),
+    npc_reply: finalReply,
     relationship_delta: relationshipDelta,
     rumor: sanitizeRumor(source.rumor),
     quest_progress: sanitizeQuestProgress(source.quest_progress),
