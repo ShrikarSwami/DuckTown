@@ -106,6 +106,9 @@ func open_for_npc(npc: Node) -> void:
 	"""Open dialogue with an NPC and query for conversation options"""
 	_current_npc = npc
 	_dialogue_open = true
+	var player_name := "Player"
+	if get_tree().root.has_meta("player_name"):
+		player_name = str(get_tree().root.get_meta("player_name"))
 
 	var npc_name: String = npc.name if npc != null else "Unknown"
 	print("[DialogueUI] Opening dialogue with %s" % npc_name)
@@ -123,7 +126,7 @@ func open_for_npc(npc: Node) -> void:
 	
 	# Clear previous content
 	_clear_options()
-	_npc_reply_label.text = "(Waiting for response...)"
+	_npc_reply_label.text = "%s, pick what you want to say..." % player_name
 	
 	# Get interaction component and start dialogue
 	if npc.has_method("start_dialogue"):

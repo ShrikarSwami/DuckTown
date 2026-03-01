@@ -119,3 +119,26 @@ func get_approval_progress() -> int:
 		if approval.is_approved:
 			count += 1
 	return count
+
+func get_open_task_descriptions() -> Array[String]:
+	"""Return readable task descriptions for incomplete approvals"""
+	var tasks: Array[String] = []
+	for approval in approvals.values():
+		if not approval.is_approved:
+			tasks.append("Earn %s approval for %s" % [approval.npc_name, approval.quest_type])
+	return tasks
+
+func get_completed_task_descriptions() -> Array[String]:
+	"""Return readable task descriptions for completed approvals"""
+	var tasks: Array[String] = []
+	for approval in approvals.values():
+		if approval.is_approved:
+			tasks.append("%s approval secured" % approval.npc_name)
+	return tasks
+
+func get_focus_npc_ids() -> Array[String]:
+	"""Return current focus NPC ids for this demo configuration"""
+	var ids: Array[String] = []
+	for approval in approvals.values():
+		ids.append(approval.npc_id)
+	return ids

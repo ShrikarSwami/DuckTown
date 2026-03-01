@@ -43,6 +43,7 @@ func _setup_npcs() -> void:
 	await get_tree().create_timer(0.1).timeout
 	
 	var npcs = get_tree().get_nodes_in_group("npc")
+	var town_roam_points = _collect_town_roam_points()
 	print("Found %d NPCs in scene" % npcs.size())
 	
 	# Define NPCs we need for the demo (matching scene node names)
@@ -56,6 +57,12 @@ func _setup_npcs() -> void:
 	
 	for npc in npcs:
 		var npc_name = npc.name
+		if npc.has_method("set_roam_points"):
+			npc.set_roam_points(town_roam_points)
+		npc.wander_radius = 220.0
+		npc.change_dir_time = randf_range(0.9, 1.6)
+		npc.speed = randf_range(55.0, 75.0)
+
 		if npc_name in npc_configs:
 			var config = npc_configs[npc_name]
 			npc.npc_id = config["npc_id"]
@@ -80,6 +87,36 @@ func _setup_npcs() -> void:
 			if npc.npc_id == "npc_generic":
 				npc.npc_id = npc.name.to_lower().replace("npc_", "")
 			print("✓ Generic NPC: %s" % npc.name)
+
+func _collect_town_roam_points() -> Array[Vector2]:
+	"""Collect marker positions so NPCs can drift across town square"""
+	var points: Array[Vector2] = []
+	var marker_nodes = get_tree().get_nodes_in_group("npc_spawn_marker")
+	if marker_nodes.is_empty():
+		var fallback_parent = get_node_or_null("NPCSpawns")
+		if fallback_parent:
+			marker_nodes = _find_marker_children(fallback_parent)
+
+	for marker in marker_nodes:
+		if marker is Marker2D:
+			points.append((marker as Marker2D).global_position)
+
+	if points.is_empty():
+		points = [
+			Vector2(250, 225), Vector2(520, 225), Vector2(820, 225), Vector2(1120, 225),
+			Vector2(240, 620), Vector2(560, 620), Vector2(860, 620), Vector2(1350, 720),
+			Vector2(1400, 400)
+		]
+
+	return points
+
+func _find_marker_children(root: Node) -> Array:
+	var nodes: Array = []
+	for child in root.get_children():
+		if child is Marker2D:
+			nodes.append(child)
+		nodes.append_array(_find_marker_children(child))
+	return nodes
 
 func _setup_debug_overlay() -> void:
 	"""Create debug overlay for showing game state"""

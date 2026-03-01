@@ -1,32 +1,56 @@
 extends Control
-# Story Intro - Shows game premise and controls before starting
+# Story intro with scrolling text and player name capture
 
-var _can_continue: bool = false
+@onready var story_scroll: RichTextLabel = $Margin/VBox/StoryWindow/StoryScroll
+@onready var name_input: LineEdit = $Margin/VBox/NameInput
+
+var _scroll_speed: float = 24.0
 
 func _ready():
-	print("[StoryIntro] Ready - showing story")
-	# Make the continue prompt blink
-	_start_blink_animation()
+	name_input.grab_focus()
+	_refresh_story_text("...")
+	print("[StoryIntro] Ready")
 
-func _on_timer_timeout():
-	# Allow player to continue after brief delay
-	_can_continue = true
-
-func _input(event):
-	if not _can_continue:
+func _process(delta: float) -> void:
+	if story_scroll == null:
 		return
-	
-	if event.is_action_pressed("ui_accept") or event.is_action_pressed("interact"):
-		_start_game()
+	story_scroll.scroll_vertical += int(_scroll_speed * delta)
 
-func _start_game():
-	print("[StoryIntro] Starting main game")
+func _input(event: InputEvent) -> void:
+	if event.is_action_pressed("ui_accept"):
+		_on_continue_button_pressed()
+
+func _on_name_input_text_submitted(_new_text: String) -> void:
+	_on_continue_button_pressed()
+
+func _on_continue_button_pressed() -> void:
+	var entered_name := name_input.text.strip_edges()
+	if entered_name.is_empty():
+		entered_name = "Alex"
+	
+	get_tree().root.set_meta("player_name", entered_name)
+	print("[StoryIntro] Player name set: %s" % entered_name)
 	get_tree().change_scene_to_file("res://scenes/Main.tscn")
 
-func _start_blink_animation():
-	var prompt = $MarginContainer/VBoxContainer/ContinuePrompt
-	if prompt:
-		var tween = create_tween()
-		tween.set_loops()
-		tween.tween_property(prompt, "modulate:a", 0.3, 0.8)
-		tween.tween_property(prompt, "modulate:a", 1.0, 0.8)
+func _refresh_story_text(player_name: String) -> void:
+	story_scroll.text = "\n".join([
+		"[center]YOU ARE A RESIDENT OF DUCK CITY NAMED %s.[/center]" % player_name,
+		"",
+		"[center]YOUR MAYOR IS A LOVABLE CLUTZ, AND THE BIG DUCK PARTY IS COMING FAST.[/center]",
+		"",
+		"[center]YOUR JOB: HELP SET UP THE PARTY BY COMPLETING TASKS,[/center]",
+		"[center]TALKING TO CITIZENS, AND BUILDING TRUST.[/center]",
+		"",
+		"[center]KEY PEOPLE THIS DEMO: BAKER, MERCH GUY, MUSICIAN.[/center]",
+		"",
+		"[center]IN FUTURE DEMOS, THESE TARGET CITIZENS CAN CHANGE DYNAMICALLY.[/center]",
+		"",
+		"[center]USE GEMINI-POWERED DIALOGUE TO ADAPT CONVERSATIONS,[/center]",
+		"[center]SPREAD RUMORS, AND UNLOCK APPROVALS FASTER.[/center]",
+		"",
+		"[center]TYPE YOUR NAME BELOW, THEN PRESS CONTINUE.[/center]",
+		"",
+		"[center]----------------------------------------------[/center]",
+		"",
+		"[center]GOOD LUCK, RESIDENT.[/center]"
+	])

@@ -48,9 +48,11 @@ async function callGemini(gameRequest) {
     npc_name,
     npc_personality,
     player_message,
+    player_name = 'Player',
     player_relationship,
     dialogue_history = [],
     known_rumors = [],
+    active_tasks = [],
     town_context = {}
   } = gameRequest;
   
@@ -60,14 +62,16 @@ async function callGemini(gameRequest) {
       npc_name,
       npc_personality,
       player_relationship,
-      known_rumors
+      known_rumors,
+      active_tasks,
+      town_context
     );
     
     // Build conversation history for context
     const conversationHistory = buildConversationHistory(dialogue_history);
     
     // Prepare the message to send to Gemini
-    const userMessage = buildUserMessage(player_message, player_relationship);
+    const userMessage = buildUserMessage(player_message, player_relationship, player_name, active_tasks, town_context);
     
     console.log(`[GeminiService] Calling Gemini for ${npc_name}...`);
     
@@ -132,7 +136,14 @@ async function callGeminiAPI(systemPrompt, conversationHistory, userMessage) {
     console.log(`[callGeminiAPI] GEMINI_API_KEY present: ${Boolean(process.env.GEMINI_API_KEY)} (length=${(process.env.GEMINI_API_KEY || '').length})`);
     
     // Call the Gemini API
-    const result = await model.generateContent({ contents: messages });
+    const result = await model.generateContent({
+      contents: messages,
+      generationConfig: {
+        responseMimeType: 'application/json',
+        maxOutputTokens: 300,
+        temperature: 0.8
+      }
+    });
     
     // Extract the text response
     const responseText = result.response.text();
@@ -245,26 +256,34 @@ function buildFallbackResponse(responseText) {
  * Build system prompt that defines NPC personality and constraints
  * Emphasizes JSON response format to maximize model compliance
  */
-function buildSystemPrompt(npcName, personality, relationship, rumors) {
+function buildSystemPrompt(npcName, personality, relationship, rumors, activeTasks = [], townContext = {}) {
   const { traits = [], speech_pattern = "natural", current_mood = "neutral" } = personality;
+  const openTasks = Array.isArray(activeTasks) ? activeTasks : [];
+  const demoFocus = Array.isArray(townContext?.demo_focus) ? townContext.demo_focus : ['baker', 'merch', 'guard'];
+  const partyGoal = townContext?.party_goal || 'Help the mayor complete party prep by earning citizen approvals.';
   
   const relationshipContext = relationship > 50 ? "likes the player" :
                               relationship > 0 ? "is neutral with the player" :
                               relationship > -50 ? "doesn't trust the player" :
                               "dislikes the player";
   
-  return `ROLE: You are ${npcName} in a small duck-obsessed town.
+  return `ROLE: You are ${npcName} in DuckTown.
 Traits: ${traits.join(", ") || "unknown"}
 Speech: ${speech_pattern}
 Current Mood: ${current_mood}
 Player Relationship: ${relationship}/100 (${relationshipContext})
+PRIMARY GAME GOAL: ${partyGoal}
+CURRENT ACTIVE TASKS:
+${openTasks.length > 0 ? openTasks.map((t, i) => `${i + 1}. ${t}`).join("\n") : "No explicit tasks provided"}
+DEMO FOCUS NPCS (can change per demo): ${demoFocus.join(', ')}
 
 KNOWN RUMORS:
 ${rumors && rumors.length > 0 ? rumors.map((r, i) => `${i + 1}. "${r.text}" (${r.tags?.join(", ") || "general"})`).join("\n") : "None yet"}
 
-TASK: Respond briefly (under 150 characters) as your character, then output JSON.
+TASK: Generate one useful, in-character line that helps or reacts to task progress.
+Aim to nudge the player toward concrete next steps, approvals, or actionable rumors.
 
-RESPONSE FORMAT - YOU MUST OUTPUT EXACTLY THIS JSON STRUCTURE:
+RESPONSE FORMAT - OUTPUT ONLY VALID JSON, NO EXTRA TEXT:
 {
   "npc_reply": "Your dialogue here",
   "relationship_delta": 0,
@@ -274,16 +293,14 @@ RESPONSE FORMAT - YOU MUST OUTPUT EXACTLY THIS JSON STRUCTURE:
 }
 
 RULES:
-1. First, write your brief dialogue response
-2. Then output the JSON on a new line
-3. relationship_delta must be an integer from -50 to 50
-4. rumor can be null OR {"text": "...", "tags": ["tag1"], "confidence": 0.5}
-5. npc_mood_change is a single mood word (happy, curious, annoyed, etc)
-6. ALWAYS include ALL fields in the JSON
-7. NO markdown code blocks - just pure JSON
-8. Be consistent with your personality
-
-START YOUR RESPONSE NOW WITH DIALOGUE, THEN JSON:`;
+1. Return ONLY a single JSON object.
+2. npc_reply must be <= 160 chars, specific, and in-character.
+3. relationship_delta must be an integer from -10 to 10.
+4. rumor can be null OR {"text": "...", "tags": ["task|npc|event"], "confidence": 0.0-1.0}.
+5. quest_progress can be null OR {"task": "...", "status": "hint|progress|complete"}.
+6. npc_mood_change must be a single mood word.
+7. Avoid generic filler. Tie response to current tasks when possible.
+8. Never output markdown/code fences.`;
 }
 
 /**
@@ -302,12 +319,22 @@ function buildConversationHistory(dialogueHistory) {
 /**
  * Build the current user message
  */
-function buildUserMessage(playerMessage, relationship) {
+function buildUserMessage(playerMessage, relationship, playerName = 'Player', activeTasks = [], townContext = {}) {
+  const tasksText = Array.isArray(activeTasks) && activeTasks.length > 0
+    ? activeTasks.map((task, index) => `${index + 1}) ${task}`).join('\n')
+    : 'No active tasks provided';
+
+  const contextSummary = JSON.stringify({
+    demo_focus: townContext?.demo_focus || null,
+    party_goal: townContext?.party_goal || null,
+    completed_tasks: townContext?.completed_tasks || []
+  });
+
   return {
     role: "user",
     parts: [
       { 
-        text: `Player says: "${playerMessage}"\n\nRespond as your character. Remember to return valid JSON.`
+        text: `Player name: ${playerName}\nPlayer says: "${playerMessage}"\nRelationship score: ${relationship}\nActive tasks:\n${tasksText}\nTown context: ${contextSummary}\n\nReturn one valid JSON object only.`
       }
     ]
   };

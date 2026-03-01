@@ -7,6 +7,8 @@ extends CharacterBody2D
 @export var speed: float = 80.0
 @export var wander_radius: float = 90.0
 @export var change_dir_time: float = 1.3
+@export var map_min: Vector2 = Vector2(30, 30)
+@export var map_max: Vector2 = Vector2(1570, 870)
 
 signal npc_in_range(npc: Node)
 signal npc_out_of_range(npc: Node)
@@ -17,6 +19,7 @@ var _home: Vector2
 var _timer: float = 0.0
 var _dir: Vector2 = Vector2.ZERO
 var _interaction_component: Node = null
+var _roam_points: Array[Vector2] = []
 
 func _ready() -> void:
 	# Add to NPC group
@@ -50,10 +53,15 @@ func _physics_process(delta: float) -> void:
 
 	velocity = _dir * speed
 	move_and_slide()
+	global_position = global_position.clamp(map_min, map_max)
 
 func _pick_new_dir() -> void:
+	if not _roam_points.is_empty() and randi_range(0, 100) < 45:
+		_home = _roam_points[randi() % _roam_points.size()]
 	_timer = change_dir_time
 	_dir = Vector2(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)).normalized()
+	if randf() < 0.55:
+		_dir = ( _home - global_position ).normalized()
 
 func _on_body_entered(body: Node) -> void:
 	if body.is_in_group("player"):
@@ -87,3 +95,9 @@ func on_rumor_learned(rumor_id: String, rumor_text: String, from_npc: String) ->
 	if _interaction_component and _interaction_component.has_method("update_relationship"):
 		var delta = randi_range(-5, 5)
 		_interaction_component.update_relationship(delta)
+
+func set_roam_points(points: Array[Vector2]) -> void:
+	"""Inject shared roam markers so NPCs spread around town"""
+	_roam_points = points.duplicate()
+	if not _roam_points.is_empty() and randf() < 0.6:
+		_home = _roam_points[randi() % _roam_points.size()]

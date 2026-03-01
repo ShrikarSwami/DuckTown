@@ -44,8 +44,12 @@ func _process(delta):
 func _update_debug_display():
 	"""Update the debug information display"""
 	var lines: Array[String] = []
+	var player_name := "Player"
+	if get_tree().root.has_meta("player_name"):
+		player_name = str(get_tree().root.get_meta("player_name"))
 	
 	lines.append("=== 🦆 DUCKTOWN DEBUG ===")
+	lines.append("Player: %s" % player_name)
 	lines.append("")
 	
 	# NPC Trust Scores

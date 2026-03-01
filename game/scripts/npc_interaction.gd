@@ -55,9 +55,26 @@ func start_dialogue(player_message: String):
 	print("[NPC %s] Starting dialogue: '%s'" % [npc_name, player_message])
 	
 	# Build request to backend
+	var quest_manager = get_tree().root.get_node_or_null("Main/QuestManager")
+	var player_name = "Player"
+	if get_tree().root.has_meta("player_name"):
+		player_name = str(get_tree().root.get_meta("player_name"))
+
+	var open_tasks: Array[String] = []
+	var completed_tasks: Array[String] = []
+	var focus_npcs: Array[String] = ["baker", "merch", "guard"]
+	if quest_manager:
+		if quest_manager.has_method("get_open_task_descriptions"):
+			open_tasks = quest_manager.get_open_task_descriptions()
+		if quest_manager.has_method("get_completed_task_descriptions"):
+			completed_tasks = quest_manager.get_completed_task_descriptions()
+		if quest_manager.has_method("get_focus_npc_ids"):
+			focus_npcs = quest_manager.get_focus_npc_ids()
+
 	var request_data = {
 		"npc_id": npc_id,
 		"npc_name": npc_name,
+		"player_name": player_name,
 		"npc_personality": {
 			"traits": personality_traits,
 			"speech_pattern": "natural",
@@ -66,7 +83,14 @@ func start_dialogue(player_message: String):
 		"player_message": player_message,
 		"player_relationship": current_relationship,
 		"dialogue_history": dialogue_history.slice(-10),  # Last 10 messages only
-		"known_rumors": known_rumors
+		"known_rumors": known_rumors,
+		"active_tasks": open_tasks,
+		"town_context": {
+			"open_tasks": open_tasks,
+			"completed_tasks": completed_tasks,
+			"demo_focus": focus_npcs,
+			"party_goal": "Help the mayor secure approvals for the duck party"
+		}
 	}
 	
 	_waiting_for_gemini = true

@@ -3,7 +3,7 @@ extends Control
 
 func _ready():
 	# Focus the play button for keyboard/controller support
-	var play_button = $CenterContainer/VBoxContainer/PlayButton
+	var play_button = $MenuMargins/CenterContainer/MenuCard/CardMargin/VBoxContainer/PlayButton
 	if play_button:
 		play_button.grab_focus()
 	
