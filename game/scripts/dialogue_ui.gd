@@ -41,6 +41,9 @@ func _ready() -> void:
 	if get_tree().root.has_meta("demo_run_count"):
 		_demo_run_count = int(get_tree().root.get_meta("demo_run_count"))
 
+	# Enable input for debug
+	set_process_unhandled_input(true)
+
 	print("[DialogueUI] Ready")
 
 
@@ -107,7 +110,32 @@ func open_for_npc(npc: Node) -> void:
 	_waiting_for_response = false
 
 	hide_hint()
+	
+	# ===== HARD FORCE VISIBILITY =====
+	visible = true
+	show()
+	_dialogue_panel.visible = true
 	_dialogue_panel.show()
+
+	# ===== DEBUG TELEMETRY =====
+	print("========== DIALOGUE DEBUG ==========")
+	print("[DialogueUI] self visible:", visible)
+	print("[DialogueUI] panel visible:", _dialogue_panel.visible)
+	print("[DialogueUI] self global_position:", global_position)
+	print("[DialogueUI] panel global_position:", _dialogue_panel.global_position)
+	print("[DialogueUI] panel position:", _dialogue_panel.position)
+	print("[DialogueUI] panel size:", _dialogue_panel.size)
+	print("[DialogueUI] panel rect:", _dialogue_panel.get_rect())
+	print("[DialogueUI] viewport size:", get_viewport().get_visible_rect().size)
+	print("[DialogueUI] z_index:", z_index)
+	print("[DialogueUI] parent:", get_parent().name)
+	print("[DialogueUI] parent type:", get_parent().get_class())
+	print("====================================")
+
+	# ===== FORCE CENTER POSITION TEST =====
+	_dialogue_panel.set_anchors_preset(Control.PRESET_CENTER)
+	_dialogue_panel.position = get_viewport().get_visible_rect().size / 2 - _dialogue_panel.size / 2
+	print("[DialogueUI] Forced center position:", _dialogue_panel.position)
 
 	if _npc_name_label != null:
 		var display_name := ""
@@ -299,6 +327,19 @@ func close_dialogue() -> void:
 	close()
 
 
+func _draw() -> void:
+	# Draw visual debug box to verify rendering
+	draw_rect(Rect2(Vector2.ZERO, size), Color(1, 0, 0, 0.2), true)
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
+		print("[DialogueUI] ESC pressed")
+		if visible and _dialogue_open:
+			print("[DialogueUI] Closing dialogue via ESC")
+			close_dialogue()
+
+
 func is_open() -> bool:
 	return _dialogue_open
 
@@ -325,6 +366,10 @@ func _append_chat_line(speaker: String, text: String) -> void:
 	else:
 		_chat_log.text += "\n" + line
 	_chat_log.scroll_to_line(max(_chat_log.get_line_count() - 1, 0))
+	
+	# ===== CHATLOG POPULATION DEBUG =====
+	print("[DialogueUI] ChatLog text now length:", _chat_log.text.length())
+	print("[DialogueUI] ChatLog line count:", _chat_log.get_line_count())
 
 
 func _clear_chat_log() -> void:
