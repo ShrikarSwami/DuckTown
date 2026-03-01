@@ -1,6 +1,24 @@
-[gd_scene format=3 uid="uid://d1q5w5j0q0q0w"]
+[gd_scene format=3 uid="uid://doc1kticpw1dd"]
 
 [ext_resource type="PackedScene" uid="uid://pt3n1aiqwpwf" path="res://scenes/Player.tscn" id="1_elqb8"]
+[ext_resource type="Texture2D" uid="uid://dbx3lpoyuaus8" path="res://assets/sprites/characters/Game_Map.png" id="1_nfivy"]
+[ext_resource type="Texture2D" uid="uid://cdko1akn6pmrs" path="res://assets/sprites/characters/Bakery_Building.png" id="2_q8u5g"]
+[ext_resource type="Texture2D" uid="uid://bcjto6w2s63vc" path="res://assets/sprites/characters/SignShop_Building.png" id="3_lhr70"]
+[ext_resource type="Texture2D" uid="uid://dnksf210prnxu" path="res://assets/sprites/characters/Hall_Building.png" id="4_wp0k4"]
+[ext_resource type="Texture2D" uid="uid://dgn8chqdeyxqk" path="res://assets/sprites/characters/MerchShop_Building.png" id="5_bjd11"]
+[ext_resource type="Texture2D" uid="uid://bjx3jt8m676co" path="res://assets/sprites/characters/House_Building_1.png" id="6_qmy6f"]
+[ext_resource type="Texture2D" uid="uid://biyiwpfxhb3q6" path="res://assets/sprites/characters/House_Building_2.png" id="7_mwfav"]
+[ext_resource type="Texture2D" uid="uid://c07e46jk7rgb5" path="res://assets/sprites/characters/House_Building_3.png" id="8_3p2gp"]
+[ext_resource type="Texture2D" uid="uid://sowkm0qvm8ij" path="res://assets/sprites/characters/House_Building_4.png" id="9_cvmbd"]
+[ext_resource type="PackedScene" uid="uid://c4cfqlf3rwees" path="res://scenes/NPC.tscn" id="10_lhr70"]
+[ext_resource type="Texture2D" uid="uid://b2cvcl81n4p61" path="res://assets/sprites/characters/Characters/Coder_Character.png" id="12_1nqs0"]
+[ext_resource type="Texture2D" uid="uid://x5l1rawk6yg7" path="res://assets/sprites/characters/Characters/Historian_Character.png" id="13_1iba3"]
+[ext_resource type="Texture2D" uid="uid://mijw41t0ugao" path="res://assets/sprites/characters/Characters/Mayor_Character.png" id="14_yxlcp"]
+[ext_resource type="Texture2D" uid="uid://beecl18mcupf6" path="res://assets/sprites/characters/Characters/Mean_Guard_Character.png" id="15_ebg2g"]
+[ext_resource type="Texture2D" uid="uid://ddham883aa2f3" path="res://assets/sprites/characters/Characters/Merch_Character.png" id="16_2ofn6"]
+[ext_resource type="Texture2D" uid="uid://cmo1vc6f7m5tw" path="res://assets/sprites/characters/Characters/Mom_Character.png" id="17_xa025"]
+[ext_resource type="Texture2D" uid="uid://8uuugo4jyya1" path="res://assets/sprites/characters/Characters/Nice_Guard_Character.png" id="18_36rkl"]
+[ext_resource type="Texture2D" uid="uid://lv5if6qwxm8e" path="res://assets/sprites/characters/Characters/Rival_Character.png" id="19_fs0b5"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_elqb8"]
 size = Vector2(1600, 20)
@@ -41,17 +59,20 @@ size = Vector2(220, 150)
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_qmy6f"]
 size = Vector2(300, 240)
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_mwfav"]
-size = Vector2(159, 190)
+[sub_resource type="ConvexPolygonShape2D" id="ConvexPolygonShape2D_nfivy"]
+points = PackedVector2Array(-32, -78, -211, -57, -274, 56, 219.5, 56.5, 223.5, -174.5, 65, -168)
 
 [node name="Main" type="Node2D" unique_id=200333195]
 
 [node name="Polygon2D" type="Polygon2D" parent="." unique_id=768410909]
 position = Vector2(-3, 0)
-color = Color(0, 1, 0, 1)
+texture = ExtResource("1_nfivy")
 polygon = PackedVector2Array(0, 0, 1600, 0, 1600, 900, 0, 900)
 
 [node name="PlayerRoot" parent="." unique_id=2041773753 instance=ExtResource("1_elqb8")]
+
+[node name="Player" parent="PlayerRoot" index="0" unique_id=1965973080]
+speed = 120.0
 
 [node name="Walls" type="StaticBody2D" parent="." unique_id=924438832]
 
@@ -106,6 +127,43 @@ shape = SubResource("RectangleShape2D_wp0k4")
 position = Vector2(1120, 720)
 shape = SubResource("RectangleShape2D_bjd11")
 
+[node name="BuildingVisuals" type="Node2D" parent="Buildings" unique_id=687456122]
+
+[node name="Spr_Bakery" type="Sprite2D" parent="Buildings/BuildingVisuals" unique_id=2091227594]
+position = Vector2(250, 141)
+texture = ExtResource("2_q8u5g")
+
+[node name="Spr_SignShop" type="Sprite2D" parent="Buildings/BuildingVisuals" unique_id=1138527282]
+position = Vector2(520, 140)
+texture = ExtResource("3_lhr70")
+
+[node name="Spr_Hall" type="Sprite2D" parent="Buildings/BuildingVisuals" unique_id=802077394]
+position = Vector2(820, 140)
+texture = ExtResource("4_wp0k4")
+
+[node name="Spr_Merch" type="Sprite2D" parent="Buildings/BuildingVisuals" unique_id=145305234]
+position = Vector2(1120, 140)
+texture = ExtResource("5_bjd11")
+
+[node name="Spr_House1" type="Sprite2D" parent="Buildings/BuildingVisuals" unique_id=1469717573]
+position = Vector2(240, 720)
+texture = ExtResource("6_qmy6f")
+
+[node name="Spr_House2" type="Sprite2D" parent="Buildings/BuildingVisuals" unique_id=1843565152]
+position = Vector2(560, 723.00006)
+scale = Vector2(0.923077, 0.90588206)
+texture = ExtResource("7_mwfav")
+
+[node name="Spr_House3" type="Sprite2D" parent="Buildings/BuildingVisuals" unique_id=2068483233]
+position = Vector2(860.5, 720.5)
+scale = Vector2(0.8423077, 0.8882353)
+texture = ExtResource("8_3p2gp")
+
+[node name="Sprite2D" type="Sprite2D" parent="Buildings/BuildingVisuals" unique_id=65628695]
+position = Vector2(1119, 720.5)
+scale = Vector2(0.8384615, 0.86470586)
+texture = ExtResource("9_cvmbd")
+
 [node name="StageArea" type="Node2D" parent="." unique_id=829020355]
 
 [node name="StageVisual" type="Polygon2D" parent="StageArea" unique_id=907624368]
@@ -121,12 +179,101 @@ shape = SubResource("RectangleShape2D_qmy6f")
 
 [node name="PondArea" type="Node2D" parent="." unique_id=1300323303]
 
-[node name="Polygon2D" type="Polygon2D" parent="PondArea" unique_id=1469966746]
-color = Color(0, 0.7529412, 1, 1)
-polygon = PackedVector2Array(1360, 650, 1520, 650, 1520, 840, 1360, 840)
-
 [node name="PondCollision" type="StaticBody2D" parent="PondArea" unique_id=1829641350]
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="PondArea/PondCollision" unique_id=887823902]
-position = Vector2(1440.5, 745)
-shape = SubResource("RectangleShape2D_mwfav")
+position = Vector2(1382, 848)
+shape = SubResource("ConvexPolygonShape2D_nfivy")
+
+[node name="Npc_Baker" parent="." unique_id=440618083 instance=ExtResource("10_lhr70")]
+position = Vector2(250, 225)
+
+[node name="Npc_Coder" parent="." unique_id=1175654815 instance=ExtResource("10_lhr70")]
+position = Vector2(560, 620)
+
+[node name="Sprite2D" parent="Npc_Coder/Node2D" parent_id_path=PackedInt32Array(1175654815, 1015060391) index="0" unique_id=1968416017]
+texture = ExtResource("12_1nqs0")
+
+[node name="Npc_Historian" parent="." unique_id=1658864784 instance=ExtResource("10_lhr70")]
+position = Vector2(1350, 720)
+
+[node name="Sprite2D" parent="Npc_Historian/Node2D" parent_id_path=PackedInt32Array(1658864784, 1015060391) index="0" unique_id=1968416017]
+texture = ExtResource("13_1iba3")
+
+[node name="Npc_Mayor" parent="." unique_id=550027314 instance=ExtResource("10_lhr70")]
+position = Vector2(1400, 400)
+
+[node name="Sprite2D" parent="Npc_Mayor/Node2D" parent_id_path=PackedInt32Array(550027314, 1015060391) index="0" unique_id=1968416017]
+texture = ExtResource("14_yxlcp")
+
+[node name="Npc_meanGuard" parent="." unique_id=2087549275 instance=ExtResource("10_lhr70")]
+position = Vector2(1120, 225)
+
+[node name="Sprite2D" parent="Npc_meanGuard/Node2D" parent_id_path=PackedInt32Array(2087549275, 1015060391) index="0" unique_id=1968416017]
+texture = ExtResource("15_ebg2g")
+
+[node name="Npc_merchGuy" parent="." unique_id=370619621 instance=ExtResource("10_lhr70")]
+position = Vector2(520, 225)
+
+[node name="Sprite2D" parent="Npc_merchGuy/Node2D" parent_id_path=PackedInt32Array(370619621, 1015060391) index="0" unique_id=1968416017]
+texture = ExtResource("16_2ofn6")
+
+[node name="Npc_Mom" parent="." unique_id=260314053 instance=ExtResource("10_lhr70")]
+position = Vector2(240, 620)
+
+[node name="Sprite2D" parent="Npc_Mom/Node2D" parent_id_path=PackedInt32Array(260314053, 1015060391) index="0" unique_id=1968416017]
+texture = ExtResource("17_xa025")
+
+[node name="Npc_niceGuard" parent="." unique_id=904829532 instance=ExtResource("10_lhr70")]
+position = Vector2(860, 620)
+
+[node name="Sprite2D" parent="Npc_niceGuard/Node2D" parent_id_path=PackedInt32Array(904829532, 1015060391) index="0" unique_id=1968416017]
+texture = ExtResource("18_36rkl")
+
+[node name="Npc_Rival" parent="." unique_id=1568568708 instance=ExtResource("10_lhr70")]
+position = Vector2(820, 225)
+
+[node name="Sprite2D" parent="Npc_Rival/Node2D" parent_id_path=PackedInt32Array(1568568708, 1015060391) index="0" unique_id=1968416017]
+texture = ExtResource("19_fs0b5")
+
+[node name="NPCSpawns" type="Node2D" parent="." unique_id=369316109]
+
+[node name="Spawn_MayorStage" type="Node2D" parent="NPCSpawns" unique_id=2030733213]
+
+[node name="Spawn_Bakery" type="Marker2D" parent="NPCSpawns/Spawn_MayorStage" unique_id=1958816176]
+position = Vector2(250, 225)
+
+[node name="Spawn_Merch2" type="Marker2D" parent="NPCSpawns/Spawn_MayorStage" unique_id=945809797]
+position = Vector2(520, 225)
+
+[node name="Spawn_Pond" type="Marker2D" parent="NPCSpawns/Spawn_MayorStage" unique_id=511640995]
+position = Vector2(1350, 750)
+
+[node name="Spawn_Rival" type="Marker2D" parent="NPCSpawns/Spawn_MayorStage" unique_id=267212888]
+position = Vector2(820, 225)
+
+[node name="Spawn_Mean_Guard" type="Marker2D" parent="NPCSpawns/Spawn_MayorStage" unique_id=303597583]
+position = Vector2(1120, 225)
+
+[node name="Spawn_Mom" type="Marker2D" parent="NPCSpawns/Spawn_MayorStage" unique_id=1079804337]
+position = Vector2(240, 620)
+
+[node name="Spawn_Coder" type="Marker2D" parent="NPCSpawns/Spawn_MayorStage" unique_id=547747960]
+position = Vector2(560, 620)
+
+[node name="SpawnNice_Guard" type="Marker2D" parent="NPCSpawns/Spawn_MayorStage" unique_id=71678796]
+position = Vector2(860, 620)
+
+[node name="Spawn_mayorStage" type="Marker2D" parent="NPCSpawns/Spawn_MayorStage" unique_id=2073644921]
+position = Vector2(1400, 400)
+
+[editable path="PlayerRoot"]
+[editable path="Npc_Baker"]
+[editable path="Npc_Coder"]
+[editable path="Npc_Historian"]
+[editable path="Npc_Mayor"]
+[editable path="Npc_meanGuard"]
+[editable path="Npc_merchGuy"]
+[editable path="Npc_Mom"]
+[editable path="Npc_niceGuard"]
+[editable path="Npc_Rival"]

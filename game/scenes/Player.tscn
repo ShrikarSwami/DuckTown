@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://pt3n1aiqwpwf"]
 
-[ext_resource type="Texture2D" uid="uid://dfgi4l407gf48" path="res://assets/sprites/characters/Test_Character.png" id="1_p0vlq"]
 [ext_resource type="Script" uid="uid://c13j5n7mnjfq5" path="res://scripts/player_controller.gd" id="1_v6fml"]
+[ext_resource type="Texture2D" uid="uid://b0vsar6vi8cfe" path="res://assets/sprites/characters/Characters/Test_Character.png" id="2_v6fml"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_v6fml"]
 size = Vector2(10, 6)
@@ -10,7 +10,7 @@ size = Vector2(10, 6)
 
 [node name="Player" type="CharacterBody2D" parent="." unique_id=1965973080]
 position = Vector2(800, 450)
-scale = Vector2(3, 3)
+scale = Vector2(2.5, 2.5)
 script = ExtResource("1_v6fml")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Player" unique_id=540646384]
@@ -20,7 +20,7 @@ debug_color = Color(0.85710603, 0.31327614, 0.48013282, 0.41960785)
 
 [node name="Sprite2D" type="Sprite2D" parent="Player" unique_id=1406121670]
 texture_filter = 1
-texture = ExtResource("1_p0vlq")
+texture = ExtResource("2_v6fml")
 
 [node name="Camera2D" type="Camera2D" parent="Player" unique_id=883490827]
 position = Vector2(0, -10)
