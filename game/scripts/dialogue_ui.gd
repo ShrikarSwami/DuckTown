@@ -69,7 +69,7 @@ func _setup_dialogue_panel() -> void:
 	if _chat_log != null:
 		_chat_log.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		_chat_log.fit_content = false
-		_chat_log.scroll_active = false
+		_chat_log.scroll_active = true
 		_chat_log.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		_chat_log.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		_chat_log.clip_contents = false

@@ -7,7 +7,7 @@ class Approval:
 	var npc_id: String
 	var npc_name: String
 	var is_approved: bool = false
-	var required_trust: int = 30  # Trust >= 30 to approve
+	var required_trust: int = 15  # Trust >= 15 to approve
 	var quest_type: String  # "food", "decorations", "safety"
 	
 	func _init(p_id: String, p_name: String, p_type: String):
