@@ -8,9 +8,14 @@ var _baker_label: Label
 var _merch_label: Label
 var _guard_label: Label
 
-# Color codes
-const RED := Color(1.0, 0.2, 0.2, 1.0)
-const GREEN := Color(0.2, 1.0, 0.2, 1.0)
+# Color codes - using exact Color8 values from spec
+const RED := Color8(255, 80, 80)        # Not approved
+const GREEN := Color8(80, 255, 120)     # Approved
+
+# Track previous state for flip detection and logging
+var _prev_baker_ok: bool = false
+var _prev_merch_ok: bool = false
+var _prev_mean_guard_ok: bool = false
 
 func _ready():
 	# Find quest manager using reliable current scene access
@@ -68,5 +73,19 @@ func _update_display(baker_ok: bool, merch_ok: bool, mean_guard_ok: bool):
 	_merch_label.add_theme_color_override("font_color", GREEN if merch_ok else RED)
 	_guard_label.add_theme_color_override("font_color", GREEN if mean_guard_ok else RED)
 	
+	# Log approval color flips for verification
+	if baker_ok and not _prev_baker_ok:
+		print("[VERIFY] UI approval color flip: baker -> green")
+	if merch_ok and not _prev_merch_ok:
+		print("[VERIFY] UI approval color flip: merch -> green")
+	if mean_guard_ok and not _prev_mean_guard_ok:
+		print("[VERIFY] UI approval color flip: meanGuard -> green")
+	
+	# Update previous state
+	_prev_baker_ok = baker_ok
+	_prev_merch_ok = merch_ok
+	_prev_mean_guard_ok = mean_guard_ok
+	
 	if VERBOSE_DEBUG:
 		print("[ProgressTracker] approvals baker=%s merch=%s meanGuard=%s" % [baker_ok, merch_ok, mean_guard_ok])
+
