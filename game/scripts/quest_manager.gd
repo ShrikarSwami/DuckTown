@@ -27,7 +27,8 @@ var _demo_flags := {
 	"baker_approved": false,
 	"merch_concern_revealed": false,
 	"merch_approved": false,
-	"guard_approved": false
+	"guard_approved": false,
+	"mean_guard_approved": false
 }
 
 # Fallback responses if AI deviates from demo script
@@ -99,18 +100,30 @@ func _on_npc_relationship_changed(npc_id: String, new_value: int, delta: int):
 			
 			if approval.is_approved and not was_approved:
 				print("[QuestManager] %s approved! (trust: %d)" % [approval.npc_name, new_value])
-				print("[VERIFY] approvals_changed emitted for %s" % npc_id)
+				_sync_demo_approval_flag(npc_id, true)
+				if npc_id == "baker" or npc_id == "merch" or npc_id == "meanGuard":
+					print("[VERIFY] %s approval reached in demo ease mode" % npc_id)
 				approval_changed.emit(npc_id, true)
 				approvals_changed.emit(npc_id, true)
 				_emit_approvals_updated()
 				_check_all_approvals()
 			elif not approval.is_approved and was_approved:
 				print("[QuestManager] %s approval lost! (trust: %d)" % [approval.npc_name, new_value])
-				print("[VERIFY] approvals_changed emitted for %s" % npc_id)
+				_sync_demo_approval_flag(npc_id, false)
 				approval_changed.emit(npc_id, false)
 				approvals_changed.emit(npc_id, false)
 				_emit_approvals_updated()
 				all_approvals_met = false
+
+func _sync_demo_approval_flag(npc_id: String, is_approved: bool) -> void:
+	"""Keep demo flag aliases aligned with trust-threshold approvals."""
+	if npc_id == "baker":
+		_demo_flags["baker_approved"] = is_approved
+	elif npc_id == "merch":
+		_demo_flags["merch_approved"] = is_approved
+	elif npc_id == "meanGuard":
+		_demo_flags["guard_approved"] = is_approved
+		_demo_flags["mean_guard_approved"] = is_approved
 
 func _emit_approvals_updated() -> void:
 	"""Emit the approvals_updated signal with current approval states"""
@@ -226,6 +239,23 @@ func get_demo_options_for_npc(npc_id: String) -> Array[String]:
 	if not demo_path_active:
 		return []
 
+	if is_approved(npc_id):
+		if npc_id == "baker":
+			return [
+				"Thanks for confirming the cupcakes and cake.",
+				"See you at the party prep."
+			]
+		if npc_id == "merch":
+			return [
+				"Thanks for handling decorations.",
+				"See you at the party setup."
+			]
+		if npc_id == "meanGuard":
+			return [
+				"Thanks for securing the party.",
+				"See you at the gate."
+			]
+
 	if demo_phase == 0:
 		if npc_id != "baker":
 			return [
@@ -300,7 +330,6 @@ func process_demo_player_message(npc_id: String, player_message: String) -> Dict
 			print("[Demo] Baker: help requested, asking about cake type")
 			return outcome
 		if bool(_demo_flags.get("baker_help_requested", false)) and text.find("duck") != -1:
-			_demo_flags["baker_approved"] = true
 			outcome["is_scripted_turn"] = true
 			outcome["script_instruction"] = "YOU MUST: (1) Enthusiastically confirm Duck cupcakes. (2) Say you'll make them special. (3) Agree to join party prep. Express excitement. Keep under 160 chars."
 			outcome["fallback_response"] = _demo_fallback_responses["baker_duck_cupcakes"]
@@ -319,7 +348,6 @@ func process_demo_player_message(npc_id: String, player_message: String) -> Dict
 			print("[Demo] Merch: concern revealed about nice guard security")
 			return outcome
 		if bool(_demo_flags.get("merch_concern_revealed", false)) and text.find("mean guard") != -1:
-			_demo_flags["merch_approved"] = true
 			outcome["is_scripted_turn"] = true
 			outcome["script_instruction"] = "YOU MUST: (1) Express relief that mean guard will protect the party. (2) Say you now feel safe and agree to bring merch. (3) Show confidence in mean guard's strength. Keep under 160 chars."
 			outcome["fallback_response"] = _demo_fallback_responses["merch_reassured"]
@@ -339,7 +367,6 @@ func process_demo_player_message(npc_id: String, player_message: String) -> Dict
 		var criticizes_nice_guard = text.find("nice guard") != -1 and (text.find("weak") != -1 or text.find("soft") != -1 or text.find("bad") != -1)
 		
 		if is_recruitment or criticizes_nice_guard:
-			_demo_flags["guard_approved"] = true
 			outcome["is_scripted_turn"] = true
 			outcome["script_instruction"] = "YOU MUST: (1) Agree to guard the party. (2) Show confidence in your strength. (3) Optionally mention you're better than nice guard. Keep under 160 chars. Be direct and accepting."
 			outcome["fallback_response"] = _demo_fallback_responses["guard_accept"]

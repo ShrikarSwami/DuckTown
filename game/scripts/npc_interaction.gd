@@ -24,6 +24,7 @@ var _waiting_for_gemini: bool = false
 var _pending_demo_outcome: Dictionary = {}
 var _demo_fallback_response: String = ""
 var _is_rude_option: bool = false
+var _applied_demo_rule_this_turn: bool = false
 
 const DEMO_RUDE_OPTION_TEXT := "We don’t even need you."
 
@@ -80,6 +81,7 @@ func start_dialogue(player_message: String):
 
 	var is_rude_message := _is_rude_option or _matches_rude_option_text(player_message)
 	_is_rude_option = is_rude_message
+	_applied_demo_rule_this_turn = false
 	
 	dialogue_started.emit(npc_id)
 	
@@ -198,18 +200,11 @@ func _on_gemini_response(response: Dictionary):
 			# Note: Still apply script outcome (relationship delta, phase advance)
 	
 
-	# Add NPC response to history
-	var npc_entry = {
-		"role": "npc",
-		"text": npc_reply
-	}
-	dialogue_history.append(npc_entry)
-	
 	# Update relationship with fallback
 	var rel_delta = response.get("relationship_delta", 0)
 	if typeof(rel_delta) != TYPE_INT and typeof(rel_delta) != TYPE_FLOAT:
 		rel_delta = 0
-	
+
 	# Force negative delta for rude option
 	if _is_rude_option:
 		print("[Demo] Rude option used, forcing delta=-10")
@@ -222,83 +217,69 @@ func _on_gemini_response(response: Dictionary):
 		if approval_key != "" and VERBOSE_DEBUG:
 			print("[VERIFY] Approval set for: %s (delta: %+d)" % [approval_key, rel_delta])
 	_is_rude_option = false
-	
+
 	# ===== DETERMINISTIC DEMO RULES =====
-	# Apply minimum trust deltas when demo objectives are met
-	# This ensures reliable progress even if Gemini returns 0 delta
-	var applied_demo_rule_this_turn := false
+	# Apply deterministic trust gains once per submit turn.
 	var player_last_message := ""
 	for i in range(dialogue_history.size() - 1, -1, -1):
 		if dialogue_history[i].get("role") == "player":
 			player_last_message = str(dialogue_history[i].get("text", "")).to_lower()
 			break
-	
-	if player_last_message != "":
-		# Baker rule: mention "duck" in any form
-		if npc_id == "baker" and player_last_message.find("duck") != -1:
-			if rel_delta < 10:
-				print("[DemoRule] baker keyword 'duck' -> forcing delta from %d to +10" % rel_delta)
-				rel_delta = 10
-		
-		# Merch rule: reassurance about mean guard
+
+	if player_last_message != "" and not _applied_demo_rule_this_turn:
+		if npc_id == "baker":
+			if player_last_message.find("duck") != -1:
+				if rel_delta < 20:
+					print("[DemoRule] baker keyword 'duck' -> forcing delta from %d to +20" % rel_delta)
+					rel_delta = 20
+				_applied_demo_rule_this_turn = true
 		elif npc_id == "merch":
 			var has_mean_guard = player_last_message.find("mean guard") != -1
-			var has_strong_guard = player_last_message.find("strong guard") != -1
-			var has_not_nice = player_last_message.find("not the nice guard") != -1
-			var has_not_nice_alt = player_last_message.find("not nice guard") != -1
-			
-			if has_mean_guard or has_strong_guard or has_not_nice or has_not_nice_alt:
-				if rel_delta < 10:
-					print("[DemoRule] merch reassurance -> forcing delta from %d to +10" % rel_delta)
-					rel_delta = 10
-		
-		# Mean Guard rule: approve when player insults the nice guard
+			var has_security_handled = player_last_message.find("security handled") != -1
+			var has_safe = player_last_message.find("safe") != -1
+			if has_mean_guard or has_security_handled or has_safe:
+				if rel_delta < 35:
+					print("[DemoRule] merch reassurance -> forcing delta from %d to +35" % rel_delta)
+					rel_delta = 35
+				_applied_demo_rule_this_turn = true
 		elif npc_id == "meanGuard":
-			if not applied_demo_rule_this_turn:
-				var insult_keywords: Array[String] = [
-					"nice guard",
-					"weak",
-					"soft",
-					"too nice",
-					"bad guard",
-					"sucks",
-					"trash",
-					"clown",
-					"can't protect",
-					"can’t protect",
-					"won't protect",
-					"won’t protect"
-				]
+			var mentions_nice_guard = player_last_message.find("nice guard") != -1
+			var negative_nice_guard = player_last_message.find("weak") != -1 or player_last_message.find("soft") != -1 or player_last_message.find("bad") != -1 or player_last_message.find("too nice") != -1 or player_last_message.find("can't protect") != -1 or player_last_message.find("can’t protect") != -1 or player_last_message.find("won't protect") != -1 or player_last_message.find("won’t protect") != -1
+			var says_tougher = player_last_message.find("you are tougher") != -1 or player_last_message.find("you're tougher") != -1 or player_last_message.find("you’re tougher") != -1
+			if (mentions_nice_guard and negative_nice_guard) or says_tougher:
+				if rel_delta < 40:
+					print("[DemoRule] meanGuard comparison trigger -> forcing delta from %d to +40" % rel_delta)
+					rel_delta = 40
+				_applied_demo_rule_this_turn = true
 
-				var has_insult_trigger := false
-				for keyword in insult_keywords:
-					if player_last_message.find(keyword) != -1:
-						has_insult_trigger = true
-						break
-
-				if has_insult_trigger:
-					if rel_delta < 35:
-						rel_delta = 35
-					print("[DemoRule] meanGuard insulted nice guard -> approval boost")
-					applied_demo_rule_this_turn = true
-				else:
-					var has_backup_trigger = player_last_message.find("guard the party") != -1 or player_last_message.find("protect") != -1 or player_last_message.find("security") != -1
-					if has_backup_trigger:
-						if rel_delta < 10:
-							rel_delta = 10
-						print("[DemoRule] meanGuard backup security request -> approval boost")
-						applied_demo_rule_this_turn = true
-
-			if applied_demo_rule_this_turn:
-				var projected_relationship := clampi(current_relationship + int(rel_delta), -100, 100)
-				if projected_relationship >= 15 and not bool(_pending_demo_outcome.get("is_scripted_turn", false)):
-					_pending_demo_outcome["is_scripted_turn"] = true
-					_pending_demo_outcome["advance_to_phase"] = 3
-					_pending_demo_outcome["approval_key"] = "meanGuard"
-					_pending_demo_outcome["suppress_rumor"] = true
-					if VERBOSE_DEBUG:
-						print("[DemoRule] meanGuard threshold reached -> forcing scripted commit")
+	if _applied_demo_rule_this_turn and npc_id == "meanGuard":
+		var projected_relationship := clampi(current_relationship + int(rel_delta), -100, 100)
+		if projected_relationship >= 15 and not bool(_pending_demo_outcome.get("is_scripted_turn", false)):
+			_pending_demo_outcome["is_scripted_turn"] = true
+			_pending_demo_outcome["advance_to_phase"] = 3
+			_pending_demo_outcome["approval_key"] = "meanGuard"
+			_pending_demo_outcome["suppress_rumor"] = true
+			if VERBOSE_DEBUG:
+				print("[DemoRule] meanGuard threshold reached -> forcing scripted commit")
 	# ===== END DETERMINISTIC DEMO RULES =====
+
+	var quest_manager = get_tree().root.get_node_or_null("Main/QuestManager")
+	if quest_manager and quest_manager.has_method("is_approved"):
+		if npc_id == "baker" and quest_manager.is_approved("baker"):
+			npc_reply = "Yes, I’m in. Let’s do duck cupcakes and duck cake."
+			rel_delta = 0
+			_pending_demo_outcome["suppress_rumor"] = true
+			print("[DemoEase] baker already approved -> override reply")
+		elif npc_id == "merch" and quest_manager.is_approved("merch"):
+			npc_reply = "Yes, I’m in. I’ll handle decorations and merch."
+			rel_delta = 0
+			_pending_demo_outcome["suppress_rumor"] = true
+			print("[DemoEase] merch already approved -> override reply")
+		elif npc_id == "meanGuard" and quest_manager.is_approved("meanGuard"):
+			npc_reply = "I’ll handle security. Party is safe."
+			rel_delta = 0
+			_pending_demo_outcome["suppress_rumor"] = true
+			print("[DemoEase] meanGuard already approved -> override reply")
 	
 	if rel_delta != 0:
 		update_relationship(int(rel_delta))
@@ -306,9 +287,15 @@ func _on_gemini_response(response: Dictionary):
 	if dialogue_ui != null and dialogue_ui.has_method("update_trust_display"):
 		dialogue_ui.update_trust_display(current_relationship)
 
-	var quest_manager = get_tree().root.get_node_or_null("Main/QuestManager")
 	if quest_manager and quest_manager.has_method("commit_demo_outcome"):
 		quest_manager.commit_demo_outcome(npc_id, _pending_demo_outcome)
+
+	# Add final NPC response to history after post-processing overrides
+	var npc_entry = {
+		"role": "npc",
+		"text": npc_reply
+	}
+	dialogue_history.append(npc_entry)
 	
 	# Handle rumor if present
 	var allow_rumor = not bool(_pending_demo_outcome.get("suppress_rumor", false))
@@ -339,6 +326,7 @@ func _on_gemini_response(response: Dictionary):
 	
 	# Emit completion
 	dialogue_ended.emit(npc_id)
+	_applied_demo_rule_this_turn = false
 	_pending_demo_outcome = {}
 	_demo_fallback_response = ""
 
@@ -348,6 +336,7 @@ func _on_gemini_error(error: String):
 		print("[Gemini] request done")
 	_waiting_for_gemini = false
 	_is_rude_option = false
+	_applied_demo_rule_this_turn = false
 	_pending_demo_outcome = {}
 	_demo_fallback_response = ""
 	print("[NPC_Interaction %s] Gemini error: %s" % [npc_id, error])
@@ -357,6 +346,7 @@ func _on_gemini_error(error: String):
 func _show_fallback_response():
 	"""Show a fallback response when Gemini fails"""
 	_is_rude_option = false
+	_applied_demo_rule_this_turn = false
 	
 	# Use demo fallback if available
 	var fallback_reply = _demo_fallback_response
@@ -423,6 +413,7 @@ func end_dialogue():
 	"""Called when player closes dialogue with this NPC"""
 	_waiting_for_gemini = false
 	_is_rude_option = false
+	_applied_demo_rule_this_turn = false
 	_pending_demo_outcome = {}
 	_demo_fallback_response = ""
 	# Rumor may auto-spread after dialogue ends
