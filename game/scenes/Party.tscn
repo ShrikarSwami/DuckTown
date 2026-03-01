@@ -1,6 +1,7 @@
-[gd_scene format=3 uid="uid://cadq76pvpvdw"]
+[gd_scene load_steps=2 format=3 uid="uid://cadq76pvpvdw"]
 
 [ext_resource type="Script" path="res://scripts/party_scene.gd" id="1_a1234"]
+[ext_resource type="AudioStream" path="res://assets/Audio/Party.wav" id="2_party_audio"]
 
 [node name="PartyScene" type="Node2D"]
 script = ExtResource("1_a1234")
@@ -49,3 +50,36 @@ You've won DuckTown's trust!
 text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 alignment = 1
 add_theme_font_size_override("font_size", 24)
+
+[node name="VideoOverlay" type="Control" parent="."]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="VictoryVideo" type="VideoStreamPlayer" parent="VideoOverlay"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+autoplay = false
+
+[node name="PartyAudio" type="AudioStreamPlayer" parent="VideoOverlay"]
+stream = ExtResource("2_party_audio")
+autoplay = false
+
+[node name="FadeOverlay" type="ColorRect" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 0)

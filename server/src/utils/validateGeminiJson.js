@@ -2,6 +2,95 @@
  * Validation utility for Gemini API requests and responses
  */
 
+function clampNumber(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function toSafeString(value) {
+  if (typeof value === 'string') return value;
+  if (value === null || value === undefined) return '';
+  return String(value);
+}
+
+function sanitizeRumor(rumor) {
+  if (!rumor || typeof rumor !== 'object' || Array.isArray(rumor)) {
+    return null;
+  }
+
+  const text = toSafeString(rumor.text).trim();
+  if (!text) {
+    return null;
+  }
+
+  const tags = Array.isArray(rumor.tags)
+    ? rumor.tags
+      .filter(tag => typeof tag === 'string')
+      .map(tag => tag.trim())
+      .filter(Boolean)
+    : [];
+
+  const confidenceRaw = Number(rumor.confidence);
+  const confidence = Number.isFinite(confidenceRaw)
+    ? clampNumber(confidenceRaw, 0, 1)
+    : 0.5;
+
+  return {
+    text: text.substring(0, 240),
+    tags,
+    confidence
+  };
+}
+
+function sanitizeQuestProgress(questProgress) {
+  if (!questProgress || typeof questProgress !== 'object' || Array.isArray(questProgress)) {
+    return null;
+  }
+
+  const task = toSafeString(questProgress.task).trim();
+  if (!task) {
+    return null;
+  }
+
+  const allowedStatus = new Set(['hint', 'progress', 'complete']);
+  const statusRaw = toSafeString(questProgress.status).trim().toLowerCase();
+  const status = allowedStatus.has(statusRaw) ? statusRaw : 'hint';
+
+  return {
+    task: task.substring(0, 160),
+    status
+  };
+}
+
+/**
+ * Normalize Gemini response into the backend response contract.
+ * This is intentionally forgiving so legacy/partial payloads still work.
+ * @param {Object} response - Parsed Gemini response object
+ * @param {Object} options - Normalization options
+ * @returns {Object} Normalized response
+ */
+function normalizeGeminiResponse(response, options = {}) {
+  const fallbackReply = toSafeString(options.fallbackReply || "I... I don't know what to say.").trim() || "I... I don't know what to say.";
+  const source = (response && typeof response === 'object' && !Array.isArray(response)) ? response : {};
+
+  const npcReply = toSafeString(source.npc_reply).trim() || fallbackReply;
+  const relationshipRaw = Number(source.relationship_delta);
+  const relationshipDelta = Number.isFinite(relationshipRaw)
+    ? clampNumber(Math.round(relationshipRaw), -50, 50)
+    : 0;
+
+  const npcMoodRaw = toSafeString(source.npc_mood_change).trim();
+  const npcMood = npcMoodRaw || 'neutral';
+
+  return {
+    success: true,
+    npc_reply: npcReply.substring(0, 300),
+    relationship_delta: relationshipDelta,
+    rumor: sanitizeRumor(source.rumor),
+    quest_progress: sanitizeQuestProgress(source.quest_progress),
+    npc_mood_change: npcMood.substring(0, 64)
+  };
+}
+
 /**
  * Validate incoming request from game client
  * @param {Object} request - The request body
@@ -200,6 +289,30 @@ function validateResponse(response) {
       }
     }
   }
+
+  if (response.quest_progress !== undefined && response.quest_progress !== null) {
+    if (typeof response.quest_progress !== 'object' || Array.isArray(response.quest_progress)) {
+      errors.schema_violations.push({
+        field: 'quest_progress',
+        expected: 'object or null',
+        received: typeof response.quest_progress
+      });
+    } else {
+      if (!('task' in response.quest_progress) || typeof response.quest_progress.task !== 'string' || response.quest_progress.task.length === 0) {
+        errors.schema_violations.push({
+          field: 'quest_progress.task',
+          reason: 'required non-empty string if quest_progress is present'
+        });
+      }
+
+      if (!('status' in response.quest_progress) || typeof response.quest_progress.status !== 'string') {
+        errors.schema_violations.push({
+          field: 'quest_progress.status',
+          reason: 'required string if quest_progress is present'
+        });
+      }
+    }
+  }
   
   if (response.npc_mood_change !== undefined && response.npc_mood_change !== null) {
     if (typeof response.npc_mood_change !== 'string') {
@@ -221,5 +334,6 @@ function validateResponse(response) {
 
 module.exports = {
   validateRequest,
-  validateResponse
+  validateResponse,
+  normalizeGeminiResponse
 };

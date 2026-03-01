@@ -14,12 +14,14 @@ signal npc_in_range(npc: Node)
 signal npc_out_of_range(npc: Node)
 
 @onready var interact_area: Area2D = $InteractArea
+@onready var name_tag: Label = $NameTag
 
 var _home: Vector2
 var _timer: float = 0.0
 var _dir: Vector2 = Vector2.ZERO
 var _interaction_component: Node = null
 var _roam_points: Array[Vector2] = []
+var _is_talking: bool = false
 
 func _ready() -> void:
 	# Add to NPC group
@@ -28,21 +30,31 @@ func _ready() -> void:
 	_home = global_position
 	_pick_new_dir()
 	
-	# Connect interaction area
+	# Set name tag
+	if name_tag:
+		name_tag.text = display_name if display_name != "" else npc_id.capitalize()
+	
+	# Connect interaction area for player detection
 	if interact_area:
 		interact_area.body_entered.connect(_on_body_entered)
 		interact_area.body_exited.connect(_on_body_exited)
+		interact_area.input_pickable = true
+		if not interact_area.input_event.is_connected(_on_interact_area_input_event):
+			interact_area.input_event.connect(_on_interact_area_input_event)
 	
-	# Find or wait for interaction component
-	call_deferred("_find_interaction_component")
-
-func _find_interaction_component() -> void:
-	"""Locate the interaction component (added by Main.gd)"""
+	# Find interaction component immediately (should have been added by main.gd)
 	_interaction_component = get_node_or_null("NPC_Interaction")
 	if _interaction_component:
-		print("[NPC %s] Found interaction component" % name)
+		print("[NPC %s] Interaction component found" % name)
+	else:
+		push_error("[NPC %s] Interaction component NOT found! Check main.gd setup." % name)
 
 func _physics_process(delta: float) -> void:
+	if _is_talking:
+		velocity = Vector2.ZERO
+		move_and_slide()
+		return
+
 	_timer -= delta
 	if _timer <= 0.0:
 		_pick_new_dir()
@@ -73,12 +85,29 @@ func _on_body_exited(body: Node) -> void:
 
 # === Integration with Interaction System ===
 
-func start_dialogue(message: String) -> void:
-	"""Forward dialogue request to interaction component"""
-	if _interaction_component and _interaction_component.has_method("start_dialogue"):
-		_interaction_component.start_dialogue(message)
-	else:
-		push_error("[NPC %s] No interaction component found!" % name)
+func start_dialogue(message: String = "") -> void:
+	"""Forward dialogue request to NPC_Interaction component"""
+	print("[NPC] start_dialogue %s" % npc_id)
+	set_talking(true)
+
+	if _interaction_component == null:
+		_interaction_component = get_node_or_null("NPC_Interaction")
+
+	if _interaction_component == null:
+		push_error("[NPC %s] No NPC_Interaction component! Cannot start dialogue." % name)
+		return
+	
+	if not _interaction_component.has_method("start_dialogue"):
+		push_error("[NPC %s] Interaction component missing start_dialogue method!" % name)
+		return
+	
+	_interaction_component.start_dialogue(message)
+
+
+func end_dialogue() -> void:
+	if _interaction_component != null and _interaction_component.has_method("end_dialogue"):
+		_interaction_component.end_dialogue()
+	set_talking(false)
 
 func get_relationship() -> int:
 	"""Get current relationship score"""
@@ -101,3 +130,26 @@ func set_roam_points(points: Array[Vector2]) -> void:
 	_roam_points = points.duplicate()
 	if not _roam_points.is_empty() and randf() < 0.6:
 		_home = _roam_points[randi() % _roam_points.size()]
+
+func set_talking(is_talking: bool) -> void:
+	if _is_talking == is_talking:
+		return
+	_is_talking = is_talking
+	print("[NPC] set_talking %s" % ("true" if is_talking else "false"))
+	if _is_talking:
+		velocity = Vector2.ZERO
+
+func _on_interact_area_input_event(_viewport: Viewport, event: InputEvent, _shape_idx: int) -> void:
+	if not (event is InputEventMouseButton):
+		return
+
+	var mouse_event := event as InputEventMouseButton
+	if mouse_event.button_index != MOUSE_BUTTON_LEFT or not mouse_event.pressed:
+		return
+
+	var dialogue_ui = get_tree().get_first_node_in_group("dialogue_ui")
+	if dialogue_ui != null and dialogue_ui.has_method("is_open") and dialogue_ui.is_open():
+		return
+
+	print("[Click] NPC clicked: %s" % (display_name if display_name != "" else npc_id))
+	start_dialogue("")

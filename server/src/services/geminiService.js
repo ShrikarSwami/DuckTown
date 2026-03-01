@@ -1,4 +1,5 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const { normalizeGeminiResponse } = require('../utils/validateGeminiJson');
 
 const DEFAULT_GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
 
@@ -53,7 +54,8 @@ async function callGemini(gameRequest) {
     dialogue_history = [],
     known_rumors = [],
     active_tasks = [],
-    town_context = {}
+    town_context = {},
+    demo_context = {}
   } = gameRequest;
   
   try {
@@ -64,7 +66,8 @@ async function callGemini(gameRequest) {
       player_relationship,
       known_rumors,
       active_tasks,
-      town_context
+      town_context,
+      demo_context
     );
     
     // Build conversation history for context
@@ -139,9 +142,8 @@ async function callGeminiAPI(systemPrompt, conversationHistory, userMessage) {
     const result = await model.generateContent({
       contents: messages,
       generationConfig: {
-        responseMimeType: 'application/json',
-        maxOutputTokens: 300,
-        temperature: 0.8
+        maxOutputTokens: 800,
+        temperature: 0.7
       }
     });
     
@@ -150,25 +152,16 @@ async function callGeminiAPI(systemPrompt, conversationHistory, userMessage) {
     console.log(`[callGeminiAPI] Raw Gemini response: ${responseText.substring(0, 200)}...`);
     
     // Parse JSON from the response
-    const parsedResponse = extractAndParseJSON(responseText);
-    
-    if (!parsedResponse) {
-      console.warn('[callGeminiAPI] Failed to extract JSON from response, using fallback');
+    const extraction = extractAndParseJSON(responseText);
+
+    if (!extraction.object) {
+      console.warn('[callGeminiAPI] JSON extraction mode=fallback reason=no_valid_json_object');
       return buildFallbackResponse(responseText);
     }
-    
-    // Ensure required fields exist
-    const validatedResponse = {
-      success: true,
-      npc_reply: parsedResponse.npc_reply || "...",
-      relationship_delta: parseInt(parsedResponse.relationship_delta) || 0,
-      rumor: parsedResponse.rumor || null,
-      quest_progress: parsedResponse.quest_progress || null,
-      npc_mood_change: parsedResponse.npc_mood_change || "neutral"
-    };
-    
-    console.log(`[callGeminiAPI] Successfully parsed Gemini response`);
-    return validatedResponse;
+
+    const normalizedResponse = normalizeGeminiResponse(extraction.object);
+    console.log(`[callGeminiAPI] JSON extraction mode=clean method=${extraction.method}`);
+    return normalizedResponse;
     
   } catch (error) {
     const rawMessage = error?.message || '';
@@ -197,42 +190,199 @@ async function callGeminiAPI(systemPrompt, conversationHistory, userMessage) {
  * Handles cases where Gemini wraps JSON in markdown code blocks
  */
 function extractAndParseJSON(responseText) {
-  if (!responseText) return null;
-  
-  try {
-    // Try 1: Direct JSON parse (response is pure JSON)
-    try {
-      return JSON.parse(responseText);
-    } catch (e) {
-      // Continue to next attempt
+  if (typeof responseText !== 'string' || responseText.trim().length === 0) {
+    return { object: null, method: 'none' };
+  }
+
+  const text = responseText.trim();
+
+  const parseIfObject = (candidate, method) => {
+    const parsed = parsePossiblyBrokenJSONObject(candidate);
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      return { object: parsed, method };
     }
-    
-    // Try 2: Extract from markdown code block
-    const jsonMatch = responseText.match(/```json\s*([\s\S]*?)\s*```/);
-    if (jsonMatch && jsonMatch[1]) {
-      return JSON.parse(jsonMatch[1]);
-    }
-    
-    // Try 3: Extract from plain code block
-    const codeMatch = responseText.match(/```\s*([\s\S]*?)\s*```/);
-    if (codeMatch && codeMatch[1]) {
-      return JSON.parse(codeMatch[1]);
-    }
-    
-    // Try 4: Find JSON object using braces
-    const braceStart = responseText.indexOf('{');
-    const braceEnd = responseText.lastIndexOf('}');
-    if (braceStart !== -1 && braceEnd !== -1 && braceEnd > braceStart) {
-      const jsonString = responseText.substring(braceStart, braceEnd + 1);
-      return JSON.parse(jsonString);
-    }
-    
     return null;
-    
-  } catch (error) {
-    console.warn(`[extractAndParseJSON] Failed to parse: ${error.message}`);
+  };
+
+  // 1) Pure JSON response
+  const direct = parseIfObject(text, 'direct');
+  if (direct) {
+    return direct;
+  }
+
+  // 2) JSON inside markdown fence blocks (```json ...``` or ``` ... ```)
+  const fencedRegex = /```(?:json)?\s*([\s\S]*?)\s*```/gi;
+  let fenceMatch = fencedRegex.exec(text);
+  while (fenceMatch) {
+    const fencedCandidate = (fenceMatch[1] || '').trim();
+    const fencedParsed = parseIfObject(fencedCandidate, 'fenced');
+    if (fencedParsed) {
+      return fencedParsed;
+    }
+
+    const nested = extractFirstJSONObjectFromText(fencedCandidate);
+    if (nested) {
+      const nestedParsed = parseIfObject(nested, 'fenced_embedded_object');
+      if (nestedParsed) {
+        return nestedParsed;
+      }
+    }
+
+    fenceMatch = fencedRegex.exec(text);
+  }
+
+  // 3) Mixed prose + JSON: extract first valid JSON object from raw text
+  const firstObject = extractFirstJSONObjectFromText(text);
+  if (firstObject) {
+    const embeddedParsed = parseIfObject(firstObject, 'embedded_object');
+    if (embeddedParsed) {
+      return embeddedParsed;
+    }
+  }
+
+  return { object: null, method: 'none' };
+}
+
+function extractFirstJSONObjectFromText(text) {
+  if (typeof text !== 'string' || text.length === 0) return null;
+
+  let startIndex = -1;
+  let depth = 0;
+  let inString = false;
+  let isEscaped = false;
+
+  for (let i = 0; i < text.length; i += 1) {
+    const char = text[i];
+
+    if (inString) {
+      if (isEscaped) {
+        isEscaped = false;
+      } else if (char === '\\') {
+        isEscaped = true;
+      } else if (char === '"') {
+        inString = false;
+      }
+      continue;
+    }
+
+    if (char === '"') {
+      inString = true;
+      continue;
+    }
+
+    if (char === '{') {
+      if (depth === 0) {
+        startIndex = i;
+      }
+      depth += 1;
+      continue;
+    }
+
+    if (char === '}') {
+      if (depth > 0) {
+        depth -= 1;
+        if (depth === 0 && startIndex !== -1) {
+          const candidate = text.slice(startIndex, i + 1);
+          const parsed = parsePossiblyBrokenJSONObject(candidate);
+          if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+            return candidate;
+          }
+          startIndex = -1;
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
+function parsePossiblyBrokenJSONObject(candidate) {
+  if (typeof candidate !== 'string') return null;
+  const trimmed = candidate.trim();
+  if (!trimmed.startsWith('{') || !trimmed.endsWith('}')) {
     return null;
   }
+
+  try {
+    return JSON.parse(trimmed);
+  } catch (_error) {
+    // Attempt tolerant repair for common model formatting mistakes
+  }
+
+  const repaired = repairJsonLikeString(trimmed);
+  if (!repaired) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(repaired);
+  } catch (_error) {
+    return null;
+  }
+}
+
+function repairJsonLikeString(jsonLike) {
+  if (typeof jsonLike !== 'string' || jsonLike.length === 0) {
+    return null;
+  }
+
+  const withoutTrailingCommas = jsonLike.replace(/,\s*([}\]])/g, '$1');
+
+  let repaired = '';
+  let inString = false;
+  let isEscaped = false;
+
+  for (let i = 0; i < withoutTrailingCommas.length; i += 1) {
+    const char = withoutTrailingCommas[i];
+
+    if (inString) {
+      if (isEscaped) {
+        repaired += char;
+        isEscaped = false;
+        continue;
+      }
+
+      if (char === '\\') {
+        repaired += char;
+        isEscaped = true;
+        continue;
+      }
+
+      if (char === '"') {
+        repaired += char;
+        inString = false;
+        continue;
+      }
+
+      if (char === '\n') {
+        repaired += '\\n';
+        continue;
+      }
+
+      if (char === '\r') {
+        repaired += '\\r';
+        continue;
+      }
+
+      if (char === '\t') {
+        repaired += '\\t';
+        continue;
+      }
+
+      repaired += char;
+      continue;
+    }
+
+    if (char === '"') {
+      inString = true;
+      repaired += char;
+      continue;
+    }
+
+    repaired += char;
+  }
+
+  return repaired;
 }
 
 /**
@@ -241,22 +391,40 @@ function extractAndParseJSON(responseText) {
  */
 function buildFallbackResponse(responseText) {
   console.warn('[buildFallbackResponse] Using fallback response structure');
+
+  let reply = "I... I don't know what to say.";
+  if (typeof responseText === 'string' && responseText.trim().length > 0) {
+    const quotedReplyMatch = responseText.match(/"npc_reply"\s*:\s*"([\s\S]*?)"/);
+    if (quotedReplyMatch && quotedReplyMatch[1]) {
+      reply = quotedReplyMatch[1];
+    } else {
+      const firstLine = responseText
+        .replace(/[{}\[\]"]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .split(/\n|\r/)[0]
+        .trim();
+      if (firstLine.length > 0) {
+        reply = firstLine;
+      }
+    }
+  }
+  reply = reply.replace(/^npc_reply\s*:?\s*/i, '').trim();
   
-  return {
-    success: true,
-    npc_reply: responseText.substring(0, 200) || "I... I don't know what to say.",
+  return normalizeGeminiResponse({
+    npc_reply: reply.substring(0, 200),
     relationship_delta: 0,
     rumor: null,
     quest_progress: null,
-    npc_mood_change: "confused"
-  };
+    npc_mood_change: 'confused'
+  });
 }
 
 /**
  * Build system prompt that defines NPC personality and constraints
  * Emphasizes JSON response format to maximize model compliance
  */
-function buildSystemPrompt(npcName, personality, relationship, rumors, activeTasks = [], townContext = {}) {
+function buildSystemPrompt(npcName, personality, relationship, rumors, activeTasks = [], townContext = {}, demoContext = {}) {
   const { traits = [], speech_pattern = "natural", current_mood = "neutral" } = personality;
   const openTasks = Array.isArray(activeTasks) ? activeTasks : [];
   const demoFocus = Array.isArray(townContext?.demo_focus) ? townContext.demo_focus : ['baker', 'merch', 'guard'];
@@ -267,6 +435,21 @@ function buildSystemPrompt(npcName, personality, relationship, rumors, activeTas
                               relationship > -50 ? "doesn't trust the player" :
                               "dislikes the player";
   
+  // Extract demo script instruction if present
+  const scriptInstruction = demoContext?.script_instruction || '';
+  const isScriptedTurn = demoContext?.is_scripted_turn === true;
+  
+  let demoConstraint = '';
+  if (isScriptedTurn && scriptInstruction) {
+    demoConstraint = `\n\n⚠️ CRITICAL DEMO SCRIPT REQUIREMENT ⚠️
+THIS IS A SCRIPTED DEMO TURN. YOU MUST FOLLOW THIS EXACT INSTRUCTION:
+${scriptInstruction}
+
+FAILURE TO FOLLOW THIS INSTRUCTION WILL BREAK THE DEMO.
+Your response will be validated against this requirement.
+Stay under 160 characters and be natural, but MUST include the key elements specified above.`;
+  }
+  
   return `ROLE: You are ${npcName} in DuckTown.
 Traits: ${traits.join(", ") || "unknown"}
 Speech: ${speech_pattern}
@@ -275,7 +458,7 @@ Player Relationship: ${relationship}/100 (${relationshipContext})
 PRIMARY GAME GOAL: ${partyGoal}
 CURRENT ACTIVE TASKS:
 ${openTasks.length > 0 ? openTasks.map((t, i) => `${i + 1}. ${t}`).join("\n") : "No explicit tasks provided"}
-DEMO FOCUS NPCS (can change per demo): ${demoFocus.join(', ')}
+DEMO FOCUS NPCS (can change per demo): ${demoFocus.join(', ')}${demoConstraint}
 
 KNOWN RUMORS:
 ${rumors && rumors.length > 0 ? rumors.map((r, i) => `${i + 1}. "${r.text}" (${r.tags?.join(", ") || "general"})`).join("\n") : "None yet"}
@@ -283,7 +466,10 @@ ${rumors && rumors.length > 0 ? rumors.map((r, i) => `${i + 1}. "${r.text}" (${r
 TASK: Generate one useful, in-character line that helps or reacts to task progress.
 Aim to nudge the player toward concrete next steps, approvals, or actionable rumors.
 
-RESPONSE FORMAT - OUTPUT ONLY VALID JSON, NO EXTRA TEXT:
+YOU MUST RESPOND WITH ONLY VALID JSON. NO MARKDOWN, NO CODE BLOCKS, NO EXTRA TEXT.
+START YOUR RESPONSE WITH { AND END WITH }
+
+REQUIRED JSON FORMAT:
 {
   "npc_reply": "Your dialogue here",
   "relationship_delta": 0,
@@ -293,14 +479,14 @@ RESPONSE FORMAT - OUTPUT ONLY VALID JSON, NO EXTRA TEXT:
 }
 
 RULES:
-1. Return ONLY a single JSON object.
-2. npc_reply must be <= 160 chars, specific, and in-character.
-3. relationship_delta must be an integer from -10 to 10.
-4. rumor can be null OR {"text": "...", "tags": ["task|npc|event"], "confidence": 0.0-1.0}.
-5. quest_progress can be null OR {"task": "...", "status": "hint|progress|complete"}.
-6. npc_mood_change must be a single mood word.
-7. Avoid generic filler. Tie response to current tasks when possible.
-8. Never output markdown/code fences.`;
+1. Return ONLY a single JSON object starting with { and ending with }.
+2. DO NOT wrap in markdown code blocks or triple-backtick json tags.
+3. npc_reply must be <= 160 chars, specific, and in-character.
+4. relationship_delta must be an integer from -10 to 10.
+5. rumor can be null OR {"text": "...", "tags": ["task|npc|event"], "confidence": 0.0-1.0}.
+6. quest_progress can be null OR {"task": "...", "status": "hint|progress|complete"}.
+7. npc_mood_change must be a single mood word.
+8. Avoid generic filler. Tie response to current tasks when possible.`;
 }
 
 /**

@@ -27,8 +27,8 @@ func _find_npc_interactions():
 	print("[DebugOverlay] Found %d NPCs" % _npc_interactions.size())
 
 func _process(delta):
-	# Toggle debug with D key (just pressed check)
-	var key_pressed = Input.is_key_pressed(KEY_D)
+	# Toggle debug with Q key (just pressed check)
+	var key_pressed = Input.is_key_pressed(KEY_Q)
 	if key_pressed and not _key_pressed_last_frame:
 		_debug_visible = !_debug_visible
 		visible = _debug_visible
@@ -91,7 +91,7 @@ func _update_debug_display():
 				lines.append("  • %s [%d NPCs]" % [text_short, spreads])
 	
 	lines.append("")
-	lines.append("Press D to hide debug info")
+	lines.append("Press Q to hide debug info")
 	
 	text = "\n".join(lines)
 

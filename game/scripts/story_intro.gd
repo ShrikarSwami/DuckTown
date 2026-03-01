@@ -36,7 +36,7 @@ func _on_continue_button_pressed() -> void:
 
 func _refresh_story_text(player_name: String) -> void:
 	story_scroll.text = "\n".join([
-		"[center]YOU ARE A RESIDENT OF DUCK CITY NAMED %s.[/center]" % player_name,
+		"[center]YOU ARE A RESIDENT OF DUCK TOWN NAMED %s.[/center]" % player_name,
 		"",
 		"[center]YOUR MAYOR IS A LOVABLE CLUTZ, AND THE BIG DUCK PARTY IS COMING FAST.[/center]",
 		"",

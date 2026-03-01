@@ -1,4 +1,3 @@
-# dialogue_ui.gd - Complete dialogue interface with options, rumor feed, and trust display
 extends Control
 
 @export var hint_label_path: NodePath
@@ -8,82 +7,70 @@ extends Control
 var _hint_label: Label
 var _dialogue_panel: Control
 var _npc_name_label: Label
-
-# Dialogue panel child nodes we'll create/find
-var _npc_reply_label: Label
+var _chat_log: RichTextLabel
+var _user_input: LineEdit
+var _send_button: Button
 var _options_container: VBoxContainer
-var _rumor_feed_panel: PanelContainer
-var _rumor_feed_label: Label
-var _trust_meter: ProgressBar
 
 var _dialogue_open: bool = false
+var _waiting_for_response: bool = false
 var _current_npc: Node = null
-var _rumor_system: Node = null
+var _active_interaction: Node = null
+var _first_dialogue_of_run: bool = true
+var _demo_run_count: int = 1
 
-# Dialogue state
-var _pending_options: Array[String] = []
-
+const DEMO_RUDE_OPTION_TEXT := "We don’t even need you."
 
 func _ready() -> void:
 	_hint_label = _resolve_hint_label()
 	_dialogue_panel = _resolve_dialogue_panel()
 	_npc_name_label = _resolve_npc_name_label()
-	_rumor_system = get_tree().root.get_node_or_null("Main/RumorSystem")
 
-	print("DialogueUI ready")
-	
+	if not is_in_group("dialogue_ui"):
+		add_to_group("dialogue_ui")
+
 	if _dialogue_panel == null:
-		push_error("DialogueUI: DialoguePanel not found!")
+		push_error("[DialogueUI] DialoguePanel not found")
 		return
-	
-	# Find or create child UI components
+
 	_setup_dialogue_panel()
-	
 	_dialogue_panel.hide()
 	if _hint_label != null:
 		_hint_label.hide()
 
+	if get_tree().root.has_meta("demo_run_count"):
+		_demo_run_count = int(get_tree().root.get_meta("demo_run_count"))
+
+	print("[DialogueUI] Ready")
+
 
 func _setup_dialogue_panel() -> void:
-	"""Set up all child UI elements inside the dialogue panel"""
-	
-	# NPC reply text
-	_npc_reply_label = _dialogue_panel.find_child("NPCReplyLabel", true, false) as Label
-	if _npc_reply_label == null:
-		_npc_reply_label = Label.new()
-		_npc_reply_label.name = "NPCReplyLabel"
-		_npc_reply_label.text = "NPC dialogue will appear here..."
-		_npc_reply_label.custom_minimum_size = Vector2(400, 80)
-		_npc_reply_label.autowrap_mode = TextServer.AUTOWRAP_WORD
-		_dialogue_panel.add_child(_npc_reply_label)
-	
-	# Options container
+	_chat_log = _dialogue_panel.find_child("ChatLog", true, false) as RichTextLabel
+	_user_input = _dialogue_panel.find_child("UserInput", true, false) as LineEdit
+	_send_button = _dialogue_panel.find_child("SendButton", true, false) as Button
+
+	if _npc_name_label == null:
+		_npc_name_label = _dialogue_panel.find_child("NameLabel", true, false) as Label
+
 	_options_container = _dialogue_panel.find_child("OptionsContainer", true, false) as VBoxContainer
 	if _options_container == null:
 		_options_container = VBoxContainer.new()
 		_options_container.name = "OptionsContainer"
-		_options_container.custom_minimum_size = Vector2(400, 100)
-		_dialogue_panel.add_child(_options_container)
-	
-	# Rumor feed panel
-	_rumor_feed_panel = _dialogue_panel.find_child("RumorFeedPanel", true, false) as PanelContainer
-	if _rumor_feed_panel == null:
-		_rumor_feed_panel = PanelContainer.new()
-		_rumor_feed_panel.name = "RumorFeedPanel"
-		_rumor_feed_panel.custom_minimum_size = Vector2(400, 100)
-		
-		var scroll = ScrollContainer.new()
-		scroll.custom_minimum_size = Vector2(400, 100)
-		
-		_rumor_feed_label = Label.new()
-		_rumor_feed_label.text = "No rumors yet..."
-		_rumor_feed_label.autowrap_mode = TextServer.AUTOWRAP_WORD
-		
-		scroll.add_child(_rumor_feed_label)
-		_rumor_feed_panel.add_child(scroll)
-		_dialogue_panel.add_child(_rumor_feed_panel)
-	else:
-		_rumor_feed_label = _rumor_feed_panel.find_child("RumorFeedLabel", true, false) as Label
+		_options_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		_options_container.custom_minimum_size = Vector2(0, 120)
+		_options_container.add_theme_constant_override("separation", 6)
+
+		var input_row := _dialogue_panel.find_child("InputRow", true, false)
+		if input_row != null and input_row.get_parent() != null:
+			input_row.get_parent().add_child(_options_container)
+			input_row.get_parent().move_child(_options_container, input_row.get_index())
+		else:
+			_dialogue_panel.add_child(_options_container)
+
+	if _send_button != null and not _send_button.pressed.is_connected(_on_send_pressed):
+		_send_button.pressed.connect(_on_send_pressed)
+	if _user_input != null and not _user_input.text_submitted.is_connected(_on_user_text_submitted):
+		_user_input.text_submitted.connect(_on_user_text_submitted)
 
 
 func show_hint(text: String) -> void:
@@ -91,7 +78,6 @@ func show_hint(text: String) -> void:
 		return
 	if _hint_label == null:
 		return
-	
 	_hint_label.text = text
 	_hint_label.show()
 
@@ -103,125 +89,322 @@ func hide_hint() -> void:
 
 
 func open_for_npc(npc: Node) -> void:
-	"""Open dialogue with an NPC and query for conversation options"""
-	_current_npc = npc
-	_dialogue_open = true
-	var player_name := "Player"
-	if get_tree().root.has_meta("player_name"):
-		player_name = str(get_tree().root.get_meta("player_name"))
+	if npc == null:
+		push_error("[DialogueUI] open_for_npc called with null npc")
+		return
+	if _dialogue_panel == null:
+		push_error("[DialogueUI] DialoguePanel is null")
+		return
+	if _dialogue_open:
+		close()
 
-	var npc_name: String = npc.name if npc != null else "Unknown"
-	print("[DialogueUI] Opening dialogue with %s" % npc_name)
+	var npc_id: String = str(npc.get("npc_id")) if npc.get("npc_id") != null else str(npc.name)
+	print("[DialogueUI] open_for_npc %s" % npc_id)
+
+	_current_npc = npc
+	_active_interaction = npc.get_node_or_null("NPC_Interaction")
+	_dialogue_open = true
+	_waiting_for_response = false
 
 	hide_hint()
-
-	if _dialogue_panel == null:
-		push_error("DialogueUI: DialoguePanel is null")
-		return
-
 	_dialogue_panel.show()
 
 	if _npc_name_label != null:
-		_npc_name_label.text = npc_name
-	
-	# Clear previous content
+		var display_name := ""
+		if npc.get("display_name") != null:
+			display_name = str(npc.get("display_name"))
+		_npc_name_label.text = display_name if display_name != "" else npc.name
+
+	_clear_chat_log()
+	_append_chat_line("System", "What would you like to talk about?")
 	_clear_options()
-	_npc_reply_label.text = "%s, pick what you want to say..." % player_name
+	var opening_options = _get_phase_aware_options()
+	if opening_options.size() < 2:
+		opening_options = _build_default_options()
+	_show_dialogue_options(opening_options)
+
+	if _user_input != null:
+		_user_input.editable = true
+		_user_input.text = ""
+		_user_input.placeholder_text = "Type a message or pick an option..."
+		_user_input.grab_focus()
+
+	print("[DialogueUI] Opened for %s" % npc.name)
+
+
+func _build_default_options() -> Array[String]:
+	var options: Array[String] = []
 	
-	# Get interaction component and start dialogue
-	if npc.has_method("start_dialogue"):
-		# TODO: Get suggested options from NPC
-		_show_dialogue_options(["Tell me about yourself", "Have you heard any rumors?", "I'd like to help"])
+	# Add rude option on second run for first NPC only
+	if _first_dialogue_of_run:
+		if _demo_run_count >= 2:
+			options.append(DEMO_RUDE_OPTION_TEXT)
+		_first_dialogue_of_run = false
+	
+	options.append("Tell me about yourself")
+	options.append("Have you heard any rumors?")
+	options.append("I'd like to help")
+	return options
 
 
 func _show_dialogue_options(options: Array[String]) -> void:
-	"""Display dialogue options as interactive buttons"""
-	_pending_options = options
+	if _options_container == null:
+		return
 	_clear_options()
-	
 	for option_text in options:
-		var button = Button.new()
+		var button := Button.new()
 		button.text = option_text
-		button.custom_minimum_size = Vector2(400, 30)
-		button.pressed.connect(func(): _on_option_selected(option_text))
+		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		button.custom_minimum_size = Vector2(0, 34)
+		if option_text == "Close":
+			button.pressed.connect(_on_close_button_pressed)
+		elif option_text == "Continue":
+			button.pressed.connect(_on_continue_button_pressed)
+		else:
+			button.pressed.connect(func() -> void: _on_option_selected(option_text))
 		_options_container.add_child(button)
-	
-	print("[DialogueUI] Showing %d options" % options.size())
 
 
 func _on_option_selected(option_text: String) -> void:
-	"""Called when player clicks a dialogue option"""
-	print("[DialogueUI] Selected: %s" % option_text)
+	print("[DialogueUI] Selected option: %s" % option_text)
 	
-	if _current_npc and _current_npc.has_method("start_dialogue"):
-		_current_npc.start_dialogue(option_text)
+	# Mark rude option for special handling
+	if option_text == DEMO_RUDE_OPTION_TEXT and _active_interaction:
+		if _active_interaction.has_method("set_is_rude_option"):
+			_active_interaction.set_is_rude_option(true)
 	
+	_submit_player_text(option_text)
+
+
+func _on_send_pressed() -> void:
+	if _user_input == null:
+		return
+	_submit_player_text(_user_input.text)
+
+
+func _on_user_text_submitted(new_text: String) -> void:
+	_submit_player_text(new_text)
+
+
+func _submit_player_text(raw_text: String) -> void:
+	if not _dialogue_open:
+		return
+	if _waiting_for_response:
+		return
+	if _active_interaction == null or not _active_interaction.has_method("start_dialogue"):
+		show_error("I can't reach this NPC right now.")
+		return
+
+	var message := raw_text.strip_edges()
+	if message.is_empty():
+		return
+
+	_waiting_for_response = true
+	_append_chat_line("You", message)
+	_append_chat_line("System", "Waiting for response…")
 	_clear_options()
+
+	if _user_input != null:
+		_user_input.editable = false
+		_user_input.text = ""
+
+	_active_interaction.start_dialogue(message)
 
 
 func set_npc_reply(reply_text: String) -> void:
-	"""Set the NPC's reply text"""
-	if _npc_reply_label:
-		_npc_reply_label.text = reply_text
-		print("[DialogueUI] Set NPC reply: %s" % reply_text)
+	var safe_reply := reply_text
+	if safe_reply == null:
+		safe_reply = ""
+	safe_reply = safe_reply.strip_edges()
+	if safe_reply.is_empty():
+		safe_reply = "I heard you, but I don't know what to say yet."
+
+	print("[DialogueUI] Received reply length=%d" % safe_reply.length())
+	_append_chat_line("NPC", safe_reply)
+	_waiting_for_response = false
+
+	if _user_input != null:
+		_user_input.editable = true
+		_user_input.grab_focus()
+
+	_show_post_reply_options()
 
 
 func show_error(error_msg: String) -> void:
-	"""Display an error message"""
-	if _npc_reply_label:
-		_npc_reply_label.text = "[ERROR] " + error_msg
+	var safe_msg := error_msg
+	if safe_msg == null:
+		safe_msg = ""
+	safe_msg = safe_msg.strip_edges()
+	if safe_msg.is_empty():
+		safe_msg = "Something went wrong."
+	_append_chat_line("NPC", safe_msg)
+	_waiting_for_response = false
+	if _user_input != null:
+		_user_input.editable = true
+	_show_post_reply_options()
 
 
 func update_trust_display(trust_value: int) -> void:
-	"""Update the trust meter display"""
-	if _trust_meter == null:
+	if _chat_log == null:
 		return
-	
-	# Map [-100, 100] relationship to [0, 200] progress range
-	var progress = int((trust_value + 100) / 2.0)
-	_trust_meter.value = clampi(progress, 0, 200)
+	# Keep method for compatibility with callers; HUD owns main trust display.
+	if trust_value < -100 or trust_value > 100:
+		print("[DialogueUI] Trust value out of expected range: %d" % trust_value)
 
 
-func update_rumor_feed(rumors: Array) -> void:
-	"""Update the rumor feed display with active rumors"""
-	if _rumor_feed_label == null:
+func _on_continue_button_pressed() -> void:
+	if not _dialogue_open:
 		return
-	
-	if rumors.is_empty():
-		_rumor_feed_label.text = "No rumors spreading..."
+	_append_chat_line("System", "What else would you like to ask?")
+	var continue_options = _get_phase_aware_options()
+	if continue_options.size() < 2:
+		continue_options = _build_default_options()
+	_show_dialogue_options(continue_options)
+	if _user_input != null:
+		_user_input.editable = true
+		_user_input.grab_focus()
+
+
+func _on_close_button_pressed() -> void:
+	close()
+
+
+func close() -> void:
+	if not _dialogue_open and _current_npc == null and _active_interaction == null:
 		return
-	
-	var rumor_texts: Array[String] = []
-	for rumor in rumors:
-		if rumor is Dictionary:
-			rumor_texts.append("• " + rumor.get("text", "???"))
-		else:
-			rumor_texts.append("• " + str(rumor))
-	
-	_rumor_feed_label.text = "\n".join(rumor_texts)
 
+	print("[DialogueUI] close")
 
-func close_dialogue() -> void:
-	"""Close the dialogue panel and resume game"""
-	print("[DialogueUI] Closing dialogue")
+	if _active_interaction != null and _active_interaction.has_method("end_dialogue"):
+		_active_interaction.end_dialogue()
+	if _current_npc != null and _current_npc.has_method("set_talking"):
+		_current_npc.set_talking(false)
 
 	_dialogue_open = false
+	_waiting_for_response = false
 	_current_npc = null
+	_active_interaction = null
 	_clear_options()
+
+	if _user_input != null:
+		_user_input.release_focus()
+		_user_input.editable = true
+		_user_input.text = ""
 
 	if _dialogue_panel != null:
 		_dialogue_panel.hide()
 
 
-func is_dialogue_open() -> bool:
+func close_dialogue() -> void:
+	close()
+
+
+func is_open() -> bool:
 	return _dialogue_open
 
 
+func is_dialogue_open() -> bool:
+	return is_open()
+
+
+func _set_dialogue_text(text: String) -> void:
+	if _chat_log != null:
+		_chat_log.text = text
+
+
+func _append_chat_line(speaker: String, text: String) -> void:
+	if _chat_log == null:
+		return
+	var safe_text := text if text != null else ""
+	safe_text = safe_text.strip_edges()
+	if safe_text.is_empty():
+		return
+	var line := "%s: %s" % [speaker, safe_text]
+	if _chat_log.text.strip_edges().is_empty():
+		_chat_log.text = line
+	else:
+		_chat_log.text += "\n" + line
+	_chat_log.scroll_to_line(max(_chat_log.get_line_count() - 1, 0))
+
+
+func _clear_chat_log() -> void:
+	if _chat_log == null:
+		return
+	_chat_log.text = ""
+
+
+func _show_post_reply_options() -> void:
+	var scripted_options = _get_phase_aware_options()
+	if scripted_options.size() >= 2:
+		var demo_options: Array[String] = []
+		for option_text in scripted_options:
+			demo_options.append(option_text)
+			if demo_options.size() >= 3:
+				break
+		if not demo_options.has("Close") and demo_options.size() < 4:
+			demo_options.append("Close")
+		_show_dialogue_options(demo_options)
+		return
+
+	var base_options: Array[String] = []
+	if _active_interaction != null and _active_interaction.has_method("get_dialogue_options"):
+		var raw_options = _active_interaction.get_dialogue_options()
+		if typeof(raw_options) == TYPE_ARRAY:
+			for item in raw_options:
+				if typeof(item) == TYPE_STRING:
+					var option_text := str(item).strip_edges()
+					if not option_text.is_empty() and not base_options.has(option_text):
+						base_options.append(option_text)
+
+	if base_options.size() < 2:
+		for fallback_option in _build_default_options():
+			if not base_options.has(fallback_option):
+				base_options.append(fallback_option)
+
+	var final_options: Array[String] = []
+	for option_text in base_options:
+		final_options.append(option_text)
+		if final_options.size() >= 3:
+			break
+
+	final_options.append("Continue")
+	final_options.append("Close")
+	_show_dialogue_options(final_options)
+
+
+func _get_phase_aware_options() -> Array[String]:
+	var options: Array[String] = []
+	if _active_interaction == null:
+		return options
+
+	var npc_id_value = _active_interaction.get("npc_id")
+	if npc_id_value == null:
+		return options
+
+	var quest_manager = get_tree().root.get_node_or_null("Main/QuestManager")
+	if quest_manager == null or not quest_manager.has_method("get_demo_options_for_npc"):
+		return options
+
+	var raw_options = quest_manager.get_demo_options_for_npc(str(npc_id_value))
+	if typeof(raw_options) != TYPE_ARRAY:
+		return options
+
+	for item in raw_options:
+		if typeof(item) == TYPE_STRING:
+			var option_text := str(item).strip_edges()
+			if not option_text.is_empty() and not options.has(option_text):
+				options.append(option_text)
+			if options.size() >= 4:
+				break
+
+	return options
+
+
 func _clear_options() -> void:
-	"""Remove all option buttons"""
+	if _options_container == null:
+		return
 	for child in _options_container.get_children():
 		child.queue_free()
-	_pending_options.clear()
 
 
 func _resolve_hint_label() -> Label:
@@ -246,6 +429,8 @@ func _resolve_npc_name_label() -> Label:
 	var n: Node = null
 	if npc_name_label_path != NodePath():
 		n = get_node_or_null(npc_name_label_path)
+	if n == null:
+		n = find_child("NameLabel", true, false)
 	if n == null:
 		n = find_child("NPCNameLabel", true, false)
 	return n as Label

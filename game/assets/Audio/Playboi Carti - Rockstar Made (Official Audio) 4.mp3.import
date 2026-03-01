@@ -1,0 +1,19 @@
+[remap]
+
+importer="mp3"
+type="AudioStreamMP3"
+uid="uid://di6ti4hf6k0oh"
+path="res://.godot/imported/Playboi Carti - Rockstar Made (Official Audio) 4.mp3-e0cc0c69d21700360fbba012e31f3ff2.mp3str"
+
+[deps]
+
+source_file="res://assets/Audio/Playboi Carti - Rockstar Made (Official Audio) 4.mp3"
+dest_files=["res://.godot/imported/Playboi Carti - Rockstar Made (Official Audio) 4.mp3-e0cc0c69d21700360fbba012e31f3ff2.mp3str"]
+
+[params]
+
+loop=false
+loop_offset=0
+bpm=0
+beat_count=0
+bar_beats=4

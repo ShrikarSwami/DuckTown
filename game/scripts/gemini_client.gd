@@ -32,7 +32,10 @@ func call_api(request_data: Dictionary) -> void:
 		return
 	
 	var json_string = JSON.stringify(request_data)
-	print("[GeminiClient] Calling backend for NPC: %s" % request_data.get("npc_name", "unknown"))
+	print("[GeminiClient] Sending request ... npc=%s endpoint=%s" % [
+		request_data.get("npc_name", "unknown"),
+		backend_url + "/api/gemini"
+	])
 	
 	var headers = ["Content-Type: application/json"]
 	var error = http_request.request(
@@ -74,6 +77,12 @@ func _on_request_completed(result: int, response_code: int, headers: PackedStrin
 		return
 	
 	var response_data = json.data
+	if typeof(response_data) != TYPE_DICTIONARY:
+		var type_error_msg = "Invalid JSON shape from backend (expected object)"
+		print("[GeminiClient] ERROR: %s" % type_error_msg)
+		request_failed.emit(type_error_msg)
+		return
+
 	print("[GeminiClient] Backend response received (success=%s)" % response_data.get("success", false))
 	
 	# Response is valid - emit it

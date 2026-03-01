@@ -27,6 +27,23 @@ texture = ExtResource("2_ktgr7")
 scale = Vector2(2.5, 2.5)
 collision_layer = 4
 collision_mask = 4
+input_pickable = true
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="InteractArea" unique_id=809746891]
 shape = SubResource("CircleShape2D_7pv12")
+
+[node name="NameTag" type="Label" parent="."]
+offset_left = -30.0
+offset_top = -40.0
+offset_right = 30.0
+offset_bottom = -25.0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.8)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 1
+theme_override_font_sizes/font_size = 12
+text = "NPC"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[connection signal="input_event" from="InteractArea" to="." method="_on_interact_area_input_event"]
