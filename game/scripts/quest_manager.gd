@@ -155,25 +155,17 @@ func _check_all_approvals() -> void:
 		print("[DemoPhase] ✨ ALL APPROVALS MET! Party unlock!")
 		print("[PartyFlow] Approvals detected: baker=%s merch=%s meanGuard=%s" % [baker_ok, merch_ok, mean_guard_ok])
 		all_approvals_met_signal.emit()
-		_trigger_party_once()
+		_trigger_party_once("quest")
 	elif not all_met:
 		all_approvals_met = false
 
-func _trigger_party_once() -> void:
+func _trigger_party_once(source: String = "unknown") -> void:
 	"""Single-fire transition to Party scene when all approvals are met."""
 	if _party_triggered_once:
 		print("[PartyFlow] Already triggered, ignoring duplicate call")
 		return
 
-	# Check if this was triggered by debug shortcut
-	var main_node = get_tree().root.get_node_or_null("Main/Main")
-	if main_node == null:
-		main_node = get_tree().current_scene
-	var is_debug_trigger: bool = false
-	if main_node != null and main_node.get("debug_party_triggered") == true:
-		is_debug_trigger = true
-		print("[PartyFlow] debug trigger activated")
-	
+	print("[PartyFlow] Triggered (source=%s)" % source)
 	print("[PartyFlow] ⭐ All approvals met, starting party transition")
 	_party_triggered_once = true
 
@@ -206,7 +198,7 @@ func _trigger_party_once() -> void:
 
 func trigger_victory() -> void:
 	"""Compatibility wrapper for previous callers."""
-	_trigger_party_once()
+	_trigger_party_once("quest")
 
 func is_approved(npc_id: String) -> bool:
 	"""Check if a specific NPC has approved - ONLY uses stored approval booleans"""

@@ -31,8 +31,16 @@ var _selected_audio_path: String = ""
 var _play_external_audio: bool = false
 
 func _ready():
-	print("="*60)
+	print("=".repeat(60))
 	print("[PartyScene] 🎉 PARTY SCENE _ready() CALLED")
+	
+	# Stop background music when party scene starts
+	if has_node("/root/MusicPlayer"):
+		var music_player = get_node("/root/MusicPlayer")
+		if music_player.has_method("stop_music"):
+			music_player.stop_music()
+		else:
+			music_player.stop()
 	
 	# Check if triggered by debug shortcut
 	var main_node = get_tree().root.get_node_or_null("Main/Main")
@@ -65,7 +73,7 @@ func _ready():
 
 func _fade_then_play_victory_video() -> bool:
 	if fade_overlay != null:
-		print("[PartyScene] Starting fade to black (%.1fs)" % PRE_VIDEO_FADE_DURATION)
+		print("[PartyScene] Starting fade to black (%.1fs)" % [PRE_VIDEO_FADE_DURATION])
 		var fade_tween := create_tween()
 		fade_tween.set_process_mode(Tween.TWEEN_PROCESS_IDLE)
 		fade_tween.tween_property(fade_overlay, "color", Color(0, 0, 0, 1), PRE_VIDEO_FADE_DURATION)
@@ -106,10 +114,10 @@ func _play_victory_video() -> bool:
 	_selected_audio_path = _resolve_first_existing_path(AUDIO_CANDIDATE_PATHS)
 
 	if _selected_video_path.is_empty():
-		push_error("[PartyScene] ❌ Could not find victory video in candidates: %s" % VIDEO_CANDIDATE_PATHS)
+		push_error("[PartyScene] ❌ Could not find victory video in candidates: %s" % [VIDEO_CANDIDATE_PATHS])
 		return false
 	
-	print("[PartyScene] Selected video: %s" % _selected_video_path)
+	print("[PartyScene] Selected video: %s" % [_selected_video_path])
 
 	var root = get_tree().root
 	var video_stream: VideoStream = null
@@ -124,7 +132,7 @@ func _play_victory_video() -> bool:
 			root.set_meta(PARTY_VIDEO_CACHE_KEY, video_stream)
 
 	if video_stream == null:
-		push_warning("[PartyScene] Could not load video: %s" % _selected_video_path)
+		push_warning("[PartyScene] Could not load video: %s" % [_selected_video_path])
 		return false
 
 	_play_external_audio = not _selected_video_path.to_lower().ends_with(".webm")
@@ -137,7 +145,7 @@ func _play_victory_video() -> bool:
 				root.set_meta(PARTY_AUDIO_CACHE_KEY, audio_stream)
 
 	if _play_external_audio and audio_stream == null:
-		push_warning("[PartyScene] Could not load external audio: %s" % _selected_audio_path)
+		push_warning("[PartyScene] Could not load external audio: %s" % [_selected_audio_path])
 		return false
 
 	if celebration != null:
@@ -174,7 +182,7 @@ func _play_victory_video() -> bool:
 		_play_external_audio,
 		_selected_audio_path if not _selected_audio_path.is_empty() else "<none>"
 	])
-	print("="*60)
+	print("=".repeat(60))
 
 	_start_finish_watchdog()
 	return true
@@ -225,6 +233,13 @@ func _restart_demo() -> void:
 
 	print("🔄 Restarting demo...")
 	print("[VERIFY] RESTARTING MAIN")
+	
+	# Restart background music
+	if has_node("/root/MusicPlayer"):
+		var music_player = get_node("/root/MusicPlayer")
+		if music_player.has_method("play"):
+			music_player.play()
+	
 	var err := get_tree().change_scene_to_file(MAIN_SCENE_PATH)
 	if err != OK:
 		print("[PartyScene] ✗ Failed to restart to Main")

@@ -117,7 +117,7 @@ func _debug_trigger_party() -> void:
 	
 	if quest_manager.has_method("_trigger_party_once"):
 		print("[DEBUG] Calling QuestManager._trigger_party_once()")
-		quest_manager._trigger_party_once()
+		quest_manager._trigger_party_once("debug")
 	else:
 		push_error("[DEBUG] QuestManager._trigger_party_once() method not found")
 		debug_party_triggered = false

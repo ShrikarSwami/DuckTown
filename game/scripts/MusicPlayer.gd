@@ -1,7 +1,17 @@
-# Preloading is more efficient for a single main theme
-var main_theme = preload("res://assets/audio/Duck_Town_Music.mp3")
+extends AudioStreamPlayer
+# Background music player - plays continuously until party scene
+
+var main_theme = preload("res://assets/Audio/Duck_Town_Music.mp3")
 
 func _ready():
-    # Assuming you have an AudioStreamPlayer node named 'MusicPlayer'
-    $MusicPlayer.stream = main_theme
-    $MusicPlayer.play()
+	stream = main_theme
+	autoplay = true
+	bus = "Master"
+	volume_db = -10
+	play()
+	print("[MusicPlayer] Background music started")
+
+func stop_music():
+	"""Called by party scene to stop background music"""
+	stop()
+	print("[MusicPlayer] Background music stopped")

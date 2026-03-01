@@ -2,69 +2,62 @@
   "id": "npc_olaf",
   "class": "Npc",
   "name": "Olaf",
-  "role": "Mean Guard / Safety",
-  "oneLineVibe": "like the mean version of the cop from the Lego movie",
+  "role": "Mean Guard",
+  "oneLineVibe": "Rude security guard who thinks the nice guard is too soft",
   "coreTraits": [
-    "strict",
-    "demanding",
-    "firm"
+    "rude",
+    "blunt",
+    "tough",
+    "no-nonsense"
   ],
   "tasks": {
     "publicTasks": [
-      "Ask if people’s tasks are safe.",
-      "Create a safety presentation."
+      "Guard the party and handle security"
     ],
-    "dependencies": [
-      {
-        "type": "coordination",
-        "withNpcId": "npc_leonard",
-        "description": "Works alongside Leonard on safety checks and presentation."
-      }
-    ]
+    "dependencies": []
   },
   "pressurePoints": {
-    "fearsOrPressurePoint": "No one being scared of him.",
-    "whatMakesHimFold": "Being openly disrespected or laughed at."
+    "fearsOrPressurePoint": "Being seen as weak or soft like the nice guard",
+    "whatMakesHimFold": "Being told he's better than the nice guard at security"
   },
   "goals": {
-    "whatTheyWantFromDuckParty": "Everyone follows the mayor’s instructions.",
-    "mayorGoalForThem": "Keep the event safe and make good presentations."
+    "whatTheyWantFromDuckParty": "Prove he's the only real guard. Show the nice guard is too soft for this job.",
+    "mayorGoalForThem": "Handle all security for the party"
   },
   "relationships": {
-    "dealBreakers": [
-      "npc_vince"
-    ],
-    "friends": [
+    "dealBreakers": [],
+    "friends": [],
+    "disliked_ppl": [
       "npc_leonard"
     ],
-    "disliked_ppl": [
-      "npc_patrica"
-    ],
-    "secretRespect": [
-      "npc_hans"
-    ],
+    "secretRespect": [],
     "notes": [
-      "Sees through Patrica’s fake niceness.",
-      "Both Olaf and Hans are a little mean, which Olaf respects."
+      "Thinks the nice guard (Leonard) is too soft and weak",
+      "Only cares about security - nothing else",
+      "Dismissive of decorations, food, and other party planning"
     ]
   },
   "secrets": {
-    "mildSecret": "He likes girly pop music.",
-    "spicySafeSecret": "He is scared of Julio (the rival event organizer).",
+    "mildSecret": null,
+    "spicySafeSecret": null,
     "secretTaskHidden": null
   },
   "rumorBehavior": {
-    "spreadsRumors": true,
-    "accuracyMinPercent": 40,
-    "accuracyMaxPercent": 60,
-    "talksToAtLeast": 2,
-    "spreadStyle": "warning-and-enforcement",
-    "notes": "Talks to a lot of people; tends to spread rumors as 'alerts' or 'warnings'."
+    "spreadsRumors": false,
+    "accuracyMinPercent": 0,
+    "accuracyMaxPercent": 0,
+    "talksToAtLeast": 0,
+    "spreadStyle": "none",
+    "notes": "Doesn't gossip. Only talks about security."
   },
   "speechStyle": {
-    "tone": "short and blunt",
+    "tone": "rude and dismissive",
     "length": "short",
-    "catchphrasesOrTicks": []
+    "catchphrasesOrTicks": [
+      "Security is my job",
+      "The nice guard is too soft",
+      "I don't care about decorations/food/that stuff"
+    ]
   },
   "difficulty": {
     "howEasyToConvince": "high",

@@ -94,6 +94,49 @@ func start_dialogue(player_message: String):
 	
 	print("[NPC_Interaction %s] Starting dialogue: '%s'" % [npc_id, player_message])
 	
+	# GOAL B: INSTANT WIN on "nice" keyword for Mean Guard
+	if npc_id == "meanGuard" and player_message.to_lower().find("nice") != -1:
+		print("[DemoRule] meanGuard keyword 'nice' -> instant approve + victory")
+		
+		# Force approval by setting trust to 30 (well above threshold of 15)
+		var target_trust = 30
+		var delta = target_trust - current_relationship
+		if delta > 0:
+			update_relationship(delta)
+			print("[DemoRule] meanGuard -> trust set to %d (delta: %+d)" % [target_trust, delta])
+		
+		# Update UI with new trust
+		if dialogue_ui != null and dialogue_ui.has_method("update_trust_display"):
+			dialogue_ui.update_trust_display(current_relationship)
+		
+		# Set forced response
+		var forced_reply := "Alright. You said 'nice'. That other guard is soft. I am on security. Party is approved."
+		
+		# Add NPC response to history
+		var npc_entry = {
+			"role": "npc",
+			"text": forced_reply
+		}
+		dialogue_history.append(npc_entry)
+		
+		# Show the response in dialogue UI
+		if dialogue_ui != null and dialogue_ui.has_method("set_npc_reply"):
+			dialogue_ui.call("set_npc_reply", forced_reply)
+		
+		# Emit completion
+		dialogue_ended.emit(npc_id)
+		
+		# Trigger instant victory - get quest manager and trigger party
+		var quest_manager = get_tree().root.get_node_or_null("Main/QuestManager")
+		if quest_manager and quest_manager.has_method("_trigger_party_once"):
+			# Give a small delay for UI to update
+			await get_tree().create_timer(0.5).timeout
+			quest_manager._trigger_party_once("meanGuard_nice")
+		else:
+			push_error("[NPC_Interaction] QuestManager not found for instant victory trigger")
+		
+		return
+	
 	# Verify we have a Gemini client
 	if gemini_client == null:
 		push_error("[NPC_Interaction %s] No Gemini client available!" % npc_id)
@@ -226,6 +269,33 @@ func _on_gemini_response(response: Dictionary):
 			player_last_message = str(dialogue_history[i].get("text", "")).to_lower()
 			break
 
+	# GOAL A: Mean Guard reply sanitization and security keyword boost
+	if npc_id == "meanGuard":
+		var reply_lower := npc_reply.to_lower()
+		var forbidden_keywords := ["merch", "decoration", "baker", "food", "mayor", "guard's approval", "talk to"]
+		var has_forbidden := false
+		
+		for keyword in forbidden_keywords:
+			if reply_lower.find(keyword) != -1:
+				has_forbidden = true
+				break
+		
+		if has_forbidden:
+			npc_reply = "Security is my job. Give me your plan: entrances, patrols, and how we handle troublemakers."
+			print("[DemoRule] meanGuard sanitize reply (removed non-security topics)")
+		
+		# Boost relationship_delta if player is engaging about security
+		var security_keywords := ["security", "guard", "protect", "safe", "plan", "patrol", "entrance"]
+		var has_security_keyword := false
+		for keyword in security_keywords:
+			if player_last_message.find(keyword) != -1:
+				has_security_keyword = true
+				break
+		
+		if has_security_keyword and rel_delta < 5:
+			print("[DemoRule] meanGuard security keyword -> delta boosted to 5 (was %d)" % rel_delta)
+			rel_delta = 5
+
 	if player_last_message != "" and not _applied_demo_rule_this_turn:
 		if npc_id == "baker":
 			if player_last_message.find("duck") != -1:
@@ -243,13 +313,16 @@ func _on_gemini_response(response: Dictionary):
 					rel_delta = 35
 				_applied_demo_rule_this_turn = true
 		elif npc_id == "meanGuard":
-			var mentions_nice_guard = player_last_message.find("nice guard") != -1 or player_last_message.find("niceguard") != -1 or player_last_message.find("other guard") != -1 or player_last_message.find("nice guy") != -1
+			# Check for the magic word "nice" (case insensitive)
+			var mentions_nice = player_last_message.find("nice") != -1
 			
-			# Just mentioning the nice guard is enough - he'll agree
-			if mentions_nice_guard:
-				if rel_delta < 40:
-					print("[DemoRule] meanGuard trigger -> just mentioned nice guard, forcing delta from %d to +40" % rel_delta)
-					rel_delta = 40
+			if mentions_nice:
+				# Force approval immediately by setting trust to 30 (well above threshold of 15)
+				var delta_to_30 = 30 - current_relationship
+				if delta_to_30 > 0:
+					print("[DemoRule] meanGuard keyword 'nice' -> forcing approval")
+					print("[DemoRule] meanGuard -> setting trust to APPROVED_MIN (30)")
+					rel_delta = delta_to_30
 				_applied_demo_rule_this_turn = true
 
 	if _applied_demo_rule_this_turn and npc_id == "meanGuard":
@@ -260,7 +333,7 @@ func _on_gemini_response(response: Dictionary):
 			_pending_demo_outcome["approval_key"] = "meanGuard"
 			_pending_demo_outcome["suppress_rumor"] = true
 			# Override response to show immediate agreement
-			npc_reply = "I agree. The nice guard is too soft for a party security job. I'll handle it - you can count on me to keep everyone safe."
+			npc_reply = "Alright, you said the magic word. The 'nice' guard is soft. I'll handle security. You're good."
 			if VERBOSE_DEBUG:
 				print("[DemoRule] meanGuard threshold reached -> forcing scripted commit with override response")
 	# ===== END DETERMINISTIC DEMO RULES =====
