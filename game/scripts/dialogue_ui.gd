@@ -406,9 +406,16 @@ func _append_chat_line(speaker: String, text: String) -> void:
 		_chat_log.text += "\n" + line
 	
 	# Scroll chat log to bottom
-	await get_tree().process_frame
-	if _scroll_container != null:
-		_scroll_container.scroll_vertical = int(_scroll_container.get_v_scroll_bar().max_value)
+	var tree := get_tree()
+	if tree == null:
+		return
+	await tree.process_frame
+	if not is_inside_tree():
+		return
+	if _scroll_container != null and is_instance_valid(_scroll_container):
+		var scroll_bar := _scroll_container.get_v_scroll_bar()
+		if scroll_bar != null:
+			_scroll_container.scroll_vertical = int(scroll_bar.max_value)
 	
 	if VERBOSE_DEBUG:
 		# ===== CHATLOG POPULATION DEBUG =====

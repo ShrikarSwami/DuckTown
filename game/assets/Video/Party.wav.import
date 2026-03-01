@@ -2,13 +2,13 @@
 
 importer="wav"
 type="AudioStreamWAV"
-uid="uid://cw2fl3vkgd4cu"
-path="res://.godot/imported/Party.wav-2d9c98da2d68b9775393e07d820e8ff3.sample"
+uid="uid://cpnl01f0ttrg4"
+path="res://.godot/imported/Party.wav-6b63a5be654e2b450177bb531974cd6f.sample"
 
 [deps]
 
-source_file="res://assets/Video/Party.wav"
-dest_files=["res://.godot/imported/Party.wav-2d9c98da2d68b9775393e07d820e8ff3.sample"]
+source_file="res://assets/video/Party.wav"
+dest_files=["res://.godot/imported/Party.wav-6b63a5be654e2b450177bb531974cd6f.sample"]
 
 [params]
 

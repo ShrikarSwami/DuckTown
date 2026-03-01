@@ -24,6 +24,7 @@ var _dir: Vector2 = Vector2.ZERO
 var _interaction_component: Node = null
 var _roam_points: Array[Vector2] = []
 var _is_talking: bool = false
+var _missing_interaction_logged: bool = false
 
 func _ready() -> void:
 	# Add to NPC group
@@ -44,13 +45,28 @@ func _ready() -> void:
 		if not interact_area.input_event.is_connected(_on_interact_area_input_event):
 			interact_area.input_event.connect(_on_interact_area_input_event)
 	
-	# Find interaction component immediately (should have been added by main.gd)
+	# Defer interaction component check to allow main.gd to inject it first
+	call_deferred("_check_interaction_component")
+
+func _check_interaction_component() -> void:
+	"""Check for interaction component after main.gd has had a chance to add it"""
 	_interaction_component = get_node_or_null("NPC_Interaction")
 	if _interaction_component:
 		if VERBOSE_DEBUG:
 			print("[NPC %s] Interaction component found" % name)
-	else:
-		push_error("[NPC %s] Interaction component NOT found! Check main.gd setup." % name)
+		return
+
+	if Engine.is_editor_hint():
+		return
+
+	var root = get_tree().root
+	var bootstrap_complete := root != null and root.has_meta("main_bootstrap_complete") and bool(root.get_meta("main_bootstrap_complete"))
+	if not bootstrap_complete:
+		return
+
+	if not _missing_interaction_logged:
+		_missing_interaction_logged = true
+		push_warning("[NPC %s] Interaction component not found at runtime; will try lazy-create on interaction." % name)
 
 func _physics_process(delta: float) -> void:
 	if _is_talking:
@@ -97,9 +113,18 @@ func start_dialogue(message: String = "") -> void:
 		_interaction_component = get_node_or_null("NPC_Interaction")
 
 	if _interaction_component == null:
-		push_error("[NPC %s] No NPC_Interaction component! Cannot start dialogue." % name)
-		return
-	
+		var interaction := Node2D.new()
+		interaction.name = "NPC_Interaction"
+		interaction.set_script(load("res://scripts/npc_interaction.gd"))
+		add_child(interaction)
+		interaction.npc_id = npc_id
+		interaction.npc_name = display_name if display_name != "" else npc_id.capitalize()
+		interaction.initial_relationship = 0
+		interaction.current_relationship = 0
+		interaction.dialogue_ui = get_tree().get_first_node_in_group("dialogue_ui")
+		_interaction_component = interaction
+		push_warning("[NPC %s] Lazily created missing NPC_Interaction component." % name)
+
 	if not _interaction_component.has_method("start_dialogue"):
 		push_error("[NPC %s] Interaction component missing start_dialogue method!" % name)
 		return

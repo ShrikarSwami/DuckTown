@@ -26,6 +26,10 @@ var _demo_fallback_response: String = ""
 var _is_rude_option: bool = false
 var _applied_demo_rule_this_turn: bool = false
 
+# Deterministic fallback for Mean Guard: count dialogue sends (completed interactions)
+# Resets naturally when game restarts (new scene, new node instance)
+var _meanGuard_dialogue_send_count: int = 0
+
 const DEMO_RUDE_OPTION_TEXT := "We don’t even need you."
 
 func _ready():
@@ -126,14 +130,9 @@ func start_dialogue(player_message: String):
 		# Emit completion
 		dialogue_ended.emit(npc_id)
 		
-		# Trigger instant victory - get quest manager and trigger party
-		var quest_manager = get_tree().root.get_node_or_null("Main/QuestManager")
-		if quest_manager and quest_manager.has_method("_trigger_party_once"):
-			# Give a small delay for UI to update
-			await get_tree().create_timer(0.5).timeout
-			quest_manager._trigger_party_once("meanGuard_nice")
-		else:
-			push_error("[NPC_Interaction] QuestManager not found for instant victory trigger")
+		# Trigger instant victory using PartyFlow singleton
+		await get_tree().create_timer(0.5).timeout
+		PartyFlow.trigger_party("meanGuard_nice")
 		
 		return
 	
@@ -205,6 +204,37 @@ func start_dialogue(player_message: String):
 	_waiting_for_gemini = true
 	print("[Gemini] request start")
 	gemini_client.call_api(request_data)
+
+
+func _check_speedrun_condition(message: String) -> bool:
+	"""
+	Check if message triggers speedrun rule for Mean Guard.
+	Requires BOTH:
+	1. "nice guard" OR "nice cop" OR "nice guy" (case-insensitive)
+	2. A negative word: "sucks", "bad", "weak", "useless", "terrible", "stupid", "trash"
+	"""
+	var msg_lower := message.to_lower()
+	
+	# Check for nice phrases
+	var nice_phrases := ["nice guard", "nice cop", "nice guy"]
+	var has_nice_phrase := false
+	for phrase in nice_phrases:
+		if msg_lower.find(phrase) != -1:
+			has_nice_phrase = true
+			break
+	
+	if not has_nice_phrase:
+		return false
+	
+	# Check for negative words
+	var negative_words := ["sucks", "bad", "weak", "useless", "terrible", "stupid", "trash"]
+	var has_negative_word := false
+	for word in negative_words:
+		if msg_lower.find(word) != -1:
+			has_negative_word = true
+			break
+	
+	return has_negative_word
 
 
 func _on_gemini_response(response: Dictionary):
@@ -313,16 +343,17 @@ func _on_gemini_response(response: Dictionary):
 					rel_delta = 35
 				_applied_demo_rule_this_turn = true
 		elif npc_id == "meanGuard":
-			# Check for the magic word "nice" (case insensitive)
-			var mentions_nice = player_last_message.find("nice") != -1
-			
-			if mentions_nice:
+			# SPEEDRUN RULE: Check for "nice guard/cop/guy" + negative word
+			if _check_speedrun_condition(player_last_message):
+				print("[SpeedrunRule] meanGuard detected: nice phrase + negative word")
+				
 				# Force approval immediately by setting trust to 30 (well above threshold of 15)
 				var delta_to_30 = 30 - current_relationship
 				if delta_to_30 > 0:
-					print("[DemoRule] meanGuard keyword 'nice' -> forcing approval")
-					print("[DemoRule] meanGuard -> setting trust to APPROVED_MIN (30)")
+					print("[SpeedrunRule] meanGuard -> forcing approval, trust set to 30")
 					rel_delta = delta_to_30
+				else:
+					print("[SpeedrunRule] meanGuard already at or above 30")
 				_applied_demo_rule_this_turn = true
 
 	if _applied_demo_rule_this_turn and npc_id == "meanGuard":
@@ -333,9 +364,9 @@ func _on_gemini_response(response: Dictionary):
 			_pending_demo_outcome["approval_key"] = "meanGuard"
 			_pending_demo_outcome["suppress_rumor"] = true
 			# Override response to show immediate agreement
-			npc_reply = "Alright, you said the magic word. The 'nice' guard is soft. I'll handle security. You're good."
+			npc_reply = "You're right. That nice guard is soft. I'll handle the real security. Party is approved."
 			if VERBOSE_DEBUG:
-				print("[DemoRule] meanGuard threshold reached -> forcing scripted commit with override response")
+				print("[SpeedrunRule] meanGuard threshold reached -> forcing scripted commit with override response")
 	# ===== END DETERMINISTIC DEMO RULES =====
 
 	var quest_manager = get_tree().root.get_node_or_null("Main/QuestManager")
@@ -404,6 +435,21 @@ func _on_gemini_response(response: Dictionary):
 	_applied_demo_rule_this_turn = false
 	_pending_demo_outcome = {}
 	_demo_fallback_response = ""
+	
+	# ===== DETERMINISTIC FALLBACK: Count dialogue send & auto-approve meanGuard after 3 =====
+	if npc_id == "meanGuard":
+		_meanGuard_dialogue_send_count += 1
+		print("[MeanGuardFallback] Dialogue send #%d completed" % _meanGuard_dialogue_send_count)
+		
+		# After 3 completed dialogue sends, auto-approve meanGuard
+		if _meanGuard_dialogue_send_count >= 3 and current_relationship < 30:
+			print("[MeanGuardFallback] ⭐ 3 dialogue sends REACHED! Auto-approving meanGuard")
+			var delta_to_approval = 30 - current_relationship
+			update_relationship(delta_to_approval)
+			
+			# Update UI with new trust
+			if dialogue_ui != null and dialogue_ui.has_method("update_trust_display"):
+				dialogue_ui.update_trust_display(current_relationship)
 
 func _on_gemini_error(error: String):
 	"""Handle error from Gemini API"""
@@ -452,6 +498,21 @@ func _show_fallback_response():
 	
 	# Emit completion
 	dialogue_ended.emit(npc_id)
+	
+	# ===== DETERMINISTIC FALLBACK: Count dialogue send & auto-approve meanGuard after 3 =====
+	if npc_id == "meanGuard":
+		_meanGuard_dialogue_send_count += 1
+		print("[MeanGuardFallback] Dialogue send #%d completed (fallback)" % _meanGuard_dialogue_send_count)
+		
+		# After 3 completed dialogue sends, auto-approve meanGuard
+		if _meanGuard_dialogue_send_count >= 3 and current_relationship < 30:
+			print("[MeanGuardFallback] ⭐ 3 dialogue sends REACHED! Auto-approving meanGuard")
+			var delta_to_approval = 30 - current_relationship
+			update_relationship(delta_to_approval)
+			
+			# Update UI with new trust
+			if dialogue_ui != null and dialogue_ui.has_method("update_trust_display"):
+				dialogue_ui.update_trust_display(current_relationship)
 
 func _show_fallback_response_in_log(npc_reply: String):
 	"""Fallback if dialogue_ui is not available - just print to console"""

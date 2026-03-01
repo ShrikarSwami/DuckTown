@@ -34,6 +34,7 @@ const DEFAULT_GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
  */
 router.post('/gemini', async (req, res) => {
   const startTime = Date.now();
+  console.log('[Gemini Route] Debug - Parsed body keys:', Object.keys(req.body));
 
   try {
     // Support two request formats:
@@ -88,6 +89,9 @@ router.post('/gemini', async (req, res) => {
     const responseValidationError = validateGeminiJson.validateResponse(geminiResponse);
     if (responseValidationError) {
       console.log('[Gemini Route] Response validation failed:', responseValidationError);
+      console.log('[Gemini Route] 422 Error - content-type:', req.headers['content-type']);
+      console.log('[Gemini Route] 422 Error - body:', JSON.stringify(req.body));
+      console.log('[Gemini Route] 422 Error - validation error:', responseValidationError);
       return res.status(422).json({
         success: false,
         error: 'Gemini response failed validation',

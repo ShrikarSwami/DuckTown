@@ -25,10 +25,18 @@ func _ready():
 	_baker_label = task_list.get_node("BakerLabel")
 	_merch_label = task_list.get_node("MerchLabel")
 	_guard_label = task_list.get_node("GuardLabel")
+
+	var trackers = get_tree().get_nodes_in_group("progress_tracker")
+	print("[ProgressTracker] Active instance path=%s tracker_count=%d" % [str(get_path()), trackers.size()])
+	if trackers.size() > 1:
+		push_warning("[ProgressTracker] Multiple progress_tracker instances detected; only one should be active.")
 	
 	# Ensure default rendering is explicit while waiting for QuestManager.
 	_update_display(false, false, false)
-	call_deferred("_bind_or_retry_quest_manager")
+	
+	# Try to find QuestManager immediately, then retry if needed
+	await get_tree().process_frame
+	_bind_or_retry_quest_manager()
 
 func _has_logged_approval_ui(npc_id: String) -> bool:
 	var root = get_tree().root
@@ -66,22 +74,39 @@ func _bind_or_retry_quest_manager() -> void:
 		if VERBOSE_DEBUG:
 			print("[ProgressTracker] QuestManager not ready yet, retrying...")
 		await get_tree().process_frame
-		call_deferred("_bind_or_retry_quest_manager")
+		_bind_or_retry_quest_manager()
 		return
 
 	if VERBOSE_DEBUG:
 		print("[ProgressTracker] Found QuestManager: %s" % _quest_manager)
 
-	if _quest_manager.has_signal("approvals_changed") and not _quest_manager.approvals_changed.is_connected(_on_approvals_changed):
-		_quest_manager.approvals_changed.connect(_on_approvals_changed)
-		if VERBOSE_DEBUG:
-			print("[ProgressTracker] Connected to approvals_changed signal")
+	# Connect to signals if not already connected
+	if _quest_manager.has_signal("approval_changed"):
+		if not _quest_manager.approval_changed.is_connected(_on_approval_changed):
+			_quest_manager.approval_changed.connect(_on_approval_changed)
+			if VERBOSE_DEBUG:
+				print("[ProgressTracker] Connected to approval_changed signal")
 
-	if _quest_manager.has_signal("approvals_updated") and not _quest_manager.approvals_updated.is_connected(_on_approvals_updated):
-		_quest_manager.approvals_updated.connect(_on_approvals_updated)
-		if VERBOSE_DEBUG:
-			print("[ProgressTracker] Connected to approvals_updated signal")
+	if _quest_manager.has_signal("approvals_changed"):
+		if not _quest_manager.approvals_changed.is_connected(_on_approvals_changed):
+			_quest_manager.approvals_changed.connect(_on_approvals_changed)
+			if VERBOSE_DEBUG:
+				print("[ProgressTracker] Connected to approvals_changed signal")
+	
+	if _quest_manager.has_signal("approvals_updated"):
+		if not _quest_manager.approvals_updated.is_connected(_on_approvals_updated):
+			_quest_manager.approvals_updated.connect(_on_approvals_updated)
+			if VERBOSE_DEBUG:
+				print("[ProgressTracker] Connected to approvals_updated signal")
 
+	# Also connect to all_approvals_met_signal for victory trigger
+	if _quest_manager.has_signal("all_approvals_met_signal"):
+		if not _quest_manager.all_approvals_met_signal.is_connected(_on_all_approvals_met):
+			_quest_manager.all_approvals_met_signal.connect(_on_all_approvals_met)
+			if VERBOSE_DEBUG:
+				print("[ProgressTracker] Connected to all_approvals_met_signal")
+	
+	# Initialize display with current approval state
 	_initialize_display()
 
 func _initialize_display():
@@ -157,3 +182,13 @@ func _on_approvals_changed(npc_id: String, approved: bool):
 
 	if VERBOSE_DEBUG:
 		print("[ProgressTracker] Live update: %s = %s" % [npc_id, "green" if approved else "red"])
+
+func _on_approval_changed(npc_id: String, is_approved: bool) -> void:
+	_on_approvals_changed(npc_id, is_approved)
+
+func _on_all_approvals_met() -> void:
+	"""Called when all three approvals are met - trigger victory"""
+	if VERBOSE_DEBUG:
+		print("[ProgressTracker] All approvals met signal received!")
+	# The QuestManager will handle the scene transition
+	# This handler just logs for debugging purposes

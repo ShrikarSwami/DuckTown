@@ -6,23 +6,22 @@ const VERBOSE_DEBUG := false
 const PARTY_VIDEO_CACHE_KEY := "party_video_stream"
 const PARTY_AUDIO_CACHE_KEY := "party_audio_stream"
 const PARTY_VIDEO_CANDIDATE_PATHS: Array[String] = [
-	"res://assets/Video/Party.mp4",
-	"res://assets/Video/Party.webm"
+	"res://assets/video/Party.ogv"
 ]
 const PARTY_AUDIO_CANDIDATE_PATHS: Array[String] = [
-	"res://assets/Video/Party.wav",
-	"res://assets/Audio/Party.wav"
+	"res://assets/video/Party.wav"
 ]
 
 # Demo run tracking
 var demo_run_count: int = 0
 
-# Debug shortcut state
-var debug_party_triggered: bool = false
-
 func _ready():
 	print("\n🦆 DuckTown Starting...\n")
+	_ensure_debug_party_input_action()
 	_preload_party_media()
+	
+	# Mark that Main bootstrap has run (for direct scene detection)
+	get_tree().root.set_meta("main_bootstrap_complete", true)
 	
 	# Check if this is a restart
 	if get_tree().root.has_meta("demo_run_count"):
@@ -50,13 +49,29 @@ func _preload_party_media() -> void:
 	var selected_video_path := _resolve_first_existing_path(PARTY_VIDEO_CANDIDATE_PATHS)
 	var selected_audio_path := _resolve_first_existing_path(PARTY_AUDIO_CANDIDATE_PATHS)
 
+	print("[Main] _preload_party_media() starting...")
+	print("[Main]   Video candidates: %s" % str(PARTY_VIDEO_CANDIDATE_PATHS))
+	print("[Main]   Selected video path: '%s'" % selected_video_path)
+
 	var cached_video: VideoStream = null
 	if root.has_meta(PARTY_VIDEO_CACHE_KEY):
 		cached_video = root.get_meta(PARTY_VIDEO_CACHE_KEY) as VideoStream
+		if cached_video != null:
+			print("[Main]   ✓ Video already cached")
+	
 	if cached_video == null and not selected_video_path.is_empty():
+		print("[Main]   Loading video from: %s" % selected_video_path)
 		cached_video = load(selected_video_path) as VideoStream
 		if cached_video != null:
+			print("[Main]   ✓ Video loaded successfully: %s (class: %s)" % [selected_video_path, cached_video.get_class()])
 			root.set_meta(PARTY_VIDEO_CACHE_KEY, cached_video)
+		else:
+			push_error("[Main]   ❌ Failed to load video as VideoStream from: %s" % selected_video_path)
+	elif cached_video == null:
+		if selected_video_path.is_empty():
+			push_error("[Main]   ❌ No valid video file found! Checked: %s" % str(PARTY_VIDEO_CANDIDATE_PATHS))
+		else:
+			push_error("[Main]   ❌ Video was empty after load from: %s" % selected_video_path)
 
 	var cached_audio: AudioStream = null
 	if root.has_meta(PARTY_AUDIO_CACHE_KEY):
@@ -66,13 +81,10 @@ func _preload_party_media() -> void:
 		if cached_audio != null:
 			root.set_meta(PARTY_AUDIO_CACHE_KEY, cached_audio)
 
-	if cached_video == null:
-		push_warning("[Main] Failed to preload party video")
-
 	if cached_video != null:
-		print("✓ Party video preloaded and cached")
+		print("✓ Party video preloaded and cached: %s" % selected_video_path)
 	if cached_audio != null:
-		print("✓ Party audio preloaded and cached")
+		print("✓ Party audio preloaded and cached: %s" % selected_audio_path)
 
 
 func _resolve_first_existing_path(candidates: Array[String]) -> String:
@@ -86,6 +98,15 @@ func get_demo_run_count() -> int:
 	return demo_run_count
 
 func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("debug_party"):
+		if event is InputEventKey and (event as InputEventKey).echo:
+			return
+		var viewport := get_viewport()
+		if viewport != null:
+			viewport.set_input_as_handled()
+		_debug_trigger_party()
+		return
+
 	if not (event is InputEventKey):
 		return
 
@@ -95,32 +116,32 @@ func _unhandled_input(event: InputEvent) -> void:
 	if key_event.pressed and not key_event.echo and key_event.keycode == KEY_F9:
 		_print_demo_status_snapshot()
 	
-	# KEY_9 - Trigger party victory (debug only)
-	if key_event.pressed and not key_event.echo and key_event.keycode == KEY_9:
-		_debug_trigger_party()
-
 func _debug_trigger_party() -> void:
 	"""Debug shortcut to manually trigger the party scene"""
-	if debug_party_triggered:
-		print("[DEBUG] Party already triggered, ignoring key 9")
-		return
-	
 	print("[DEBUG] Manual party trigger (key 9 pressed)")
-	debug_party_triggered = true
-	
-	# Get quest manager and call the party trigger function
-	var quest_manager = get_node_or_null("QuestManager")
-	if quest_manager == null:
-		push_error("[DEBUG] QuestManager not found, cannot trigger party")
-		debug_party_triggered = false
+	PartyFlow.trigger_party("debug", true)
+
+func _ensure_debug_party_input_action() -> void:
+	"""Safety net: ensure debug_party exists with key 9 in debug builds."""
+	if not OS.is_debug_build():
 		return
-	
-	if quest_manager.has_method("_trigger_party_once"):
-		print("[DEBUG] Calling QuestManager._trigger_party_once()")
-		quest_manager._trigger_party_once("debug")
-	else:
-		push_error("[DEBUG] QuestManager._trigger_party_once() method not found")
-		debug_party_triggered = false
+
+	if not InputMap.has_action("debug_party"):
+		InputMap.add_action("debug_party")
+
+	var has_key_9 := false
+	for input_event in InputMap.action_get_events("debug_party"):
+		if input_event is InputEventKey:
+			var key_input := input_event as InputEventKey
+			if key_input.keycode == KEY_9 or key_input.physical_keycode == KEY_9:
+				has_key_9 = true
+				break
+
+	if not has_key_9:
+		var event := InputEventKey.new()
+		event.keycode = KEY_9
+		event.physical_keycode = KEY_9
+		InputMap.action_add_event("debug_party", event)
 
 func _print_demo_status_snapshot() -> void:
 	var player_name := "Player"
@@ -266,9 +287,6 @@ func _setup_trust_hud() -> void:
 
 func _setup_npcs() -> void:
 	"""Set NPC properties for the controlled demo path"""
-	# Wait for scene to be fully loaded
-	await get_tree().create_timer(0.1).timeout
-	
 	# Get the dialogue UI (should exist from UI scene instance)
 	var dialogue_ui = get_tree().get_first_node_in_group("dialogue_ui")
 	if dialogue_ui == null:

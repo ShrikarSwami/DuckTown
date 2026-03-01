@@ -17,21 +17,6 @@ var _npc_metadata: Dictionary = {
 	"meanGuard": {"name": "Mean Guard", "quest_type": "safety", "required_trust": 15}
 }
 
-var all_approvals_met: bool = false
-var _party_triggered_once: bool = false
-
-# Demo path tracking
-var demo_phase: int = 0  # 0=start, 1=talked_to_baker, 2=talked_to_merch, 3=ready_for_guard
-var demo_path_active: bool = true
-var _demo_flags := {
-	"baker_help_requested": false,
-	"baker_approved": false,
-	"merch_concern_revealed": false,
-	"merch_approved": false,
-	"guard_approved": false,
-	"mean_guard_approved": false
-}
-
 # Fallback responses if AI deviates from demo script
 var _demo_fallback_responses := {
 	"baker_initial": "I can help with party food! What kind of cake would you like?",
@@ -44,11 +29,23 @@ var _demo_fallback_responses := {
 	"redirect_to_guard": "We need Mean Guard to secure the party. Go recruit them."
 }
 
+# Demo progression state (safe defaults so script always parses/runs)
+var demo_path_active: bool = true
+var demo_phase: int = 0
+var all_approvals_met: bool = false
+var _demo_flags: Dictionary = {
+	"baker_help_requested": false,
+	"merch_concern_revealed": false,
+	"baker_approved": false,
+	"merch_approved": false,
+	"guard_approved": false,
+	"mean_guard_approved": false
+}
+
 signal approval_changed(npc_id: String, is_approved: bool)
 signal approvals_changed(npc_id: String, approved: bool)
 signal approvals_updated(baker_ok: bool, merch_ok: bool, mean_guard_ok: bool, approvals_count: int)
 signal all_approvals_met_signal()
-signal party_triggered()
 signal demo_phase_changed(new_phase: int)
 
 # NPC references for easy access
@@ -59,6 +56,10 @@ func _ready():
 	
 	# Find NPC interaction nodes (deferred to let Main.gd create them first)
 	call_deferred("_find_npc_interactions")
+	
+	# Emit current approval state on next frame so UI can initialize
+	await get_tree().process_frame
+	_emit_approvals_updated()
 
 func _find_npc_interactions() -> void:
 	"""Find all NPC interaction components"""
@@ -155,50 +156,13 @@ func _check_all_approvals() -> void:
 		print("[DemoPhase] ✨ ALL APPROVALS MET! Party unlock!")
 		print("[PartyFlow] Approvals detected: baker=%s merch=%s meanGuard=%s" % [baker_ok, merch_ok, mean_guard_ok])
 		all_approvals_met_signal.emit()
-		_trigger_party_once("quest")
+		PartyFlow.trigger_party("quest")
 	elif not all_met:
 		all_approvals_met = false
 
-func _trigger_party_once(source: String = "unknown") -> void:
-	"""Single-fire transition to Party scene when all approvals are met."""
-	if _party_triggered_once:
-		print("[PartyFlow] Already triggered, ignoring duplicate call")
-		return
-
-	print("[PartyFlow] Triggered (source=%s)" % source)
-	print("[PartyFlow] ⭐ All approvals met, starting party transition")
-	_party_triggered_once = true
-
-	# Close dialogue UI if open
-	for dialogue_ui in get_tree().get_nodes_in_group("dialogue_ui"):
-		if dialogue_ui != null and dialogue_ui.has_method("close"):
-			print("[PartyFlow] Closing dialogue UI")
-			dialogue_ui.close()
-			break
-
-	# Disable player input to prevent interference
-	var player_nodes := get_tree().get_nodes_in_group("player")
-	for player in player_nodes:
-		if player.has_method("set_process_input"):
-			player.set_process_input(false)
-			print("[PartyFlow] Disabled player input")
-
-	print("[PartyFlow] 🎉 Changing scene to Party.tscn")
-	print("[PartyFlow] changing scene to Party.tscn")
-	party_triggered.emit()
-
-	var party_scene_path := "res://scenes/Party.tscn"
-	print("[PartyFlow] Scene path being used: %s" % party_scene_path)
-	var err := get_tree().change_scene_to_file(party_scene_path)
-	if err != OK:
-		push_error("[PartyFlow] ❌ Failed to load Party scene at '%s' - Error: %d" % [party_scene_path, err])
-		_party_triggered_once = false
-	else:
-		print("[PartyFlow] Scene change initiated successfully")
-
 func trigger_victory() -> void:
 	"""Compatibility wrapper for previous callers."""
-	_trigger_party_once("quest")
+	PartyFlow.trigger_party("quest")
 
 func is_approved(npc_id: String) -> bool:
 	"""Check if a specific NPC has approved - ONLY uses stored approval booleans"""
@@ -309,8 +273,10 @@ func get_demo_options_for_npc(npc_id: String) -> Array[String]:
 				"Who can secure the party?"
 			]
 		return [
-			"Will you guard the party?",
-			"We need your protection at the party."
+			"Did you hear about the party tonight?",
+			"Can you guard tonight's party?",
+			"The nice guard is weak.",
+			"We need someone tougher than the nice guard."
 		]
 
 	return [

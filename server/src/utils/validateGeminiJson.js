@@ -124,7 +124,7 @@ function normalizeGeminiResponse(response, options = {}) {
   const npcMood = npcMoodRaw || 'neutral';
 
   // Apply smart trimming only as lightweight safeguard (prefer not trimming)
-  const finalReply = smartTrimAtSentence(npcReply, 500);
+  const finalReply = smartTrimAtSentence(npcReply, 300);
   
   // Log character length for verification
   console.log(`[VERIFY] npc_reply chars=${finalReply.length}`);
