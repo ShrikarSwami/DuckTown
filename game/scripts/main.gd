@@ -1,6 +1,8 @@
 extends Node2D
 # Main.gd - Initializes all game systems and NPCs
 
+const VERBOSE_DEBUG := false
+
 const PARTY_VIDEO_PATH := "res://assets/Video/Party.webm"
 const PARTY_AUDIO_PATH := "res://assets/Audio/Party.wav"
 const PARTY_VIDEO_CACHE_KEY := "party_video_stream"
@@ -30,6 +32,7 @@ func _ready():
 	_setup_debug_overlay()
 	_show_intro_message()
 	
+	print("[Main] Pond collision enabled")
 	print("✅ All systems initialized\n")
 
 func _preload_party_media() -> void:
@@ -64,13 +67,89 @@ func get_demo_run_count() -> int:
 	"""Get the current demo run count"""
 	return demo_run_count
 
+func _unhandled_input(event: InputEvent) -> void:
+	if not (event is InputEventKey):
+		return
+
+	var key_event := event as InputEventKey
+	if key_event.pressed and not key_event.echo and key_event.keycode == KEY_F9:
+		_print_demo_status_snapshot()
+
+func _print_demo_status_snapshot() -> void:
+	var player_name := "Player"
+	if get_tree().root.has_meta("player_name"):
+		player_name = str(get_tree().root.get_meta("player_name"))
+
+	var trust := _get_demo_trust_snapshot()
+
+	var baker_approved := false
+	var merch_approved := false
+	var mean_guard_approved := false
+	var demo_phase := -1
+
+	var quest_manager = get_node_or_null("QuestManager")
+	if quest_manager:
+		if quest_manager.has_method("is_approved"):
+			baker_approved = bool(quest_manager.is_approved("baker"))
+			merch_approved = bool(quest_manager.is_approved("merch"))
+			mean_guard_approved = bool(quest_manager.is_approved("meanGuard"))
+		if quest_manager.has_method("get_demo_phase"):
+			demo_phase = int(quest_manager.get_demo_phase())
+
+	var scene_name := "Unknown"
+	var current_scene = get_tree().get_current_scene()
+	if current_scene:
+		scene_name = current_scene.name
+
+	print("[F9] player=%s trust{baker:%d merch:%d meanGuard:%d} approvals{bakerApproved:%s merchApproved:%s meanGuardApproved:%s} phase=%d scene=%s" % [
+		player_name,
+		int(trust["baker"]),
+		int(trust["merch"]),
+		int(trust["meanGuard"]),
+		_bool_to_tf(baker_approved),
+		_bool_to_tf(merch_approved),
+		_bool_to_tf(mean_guard_approved),
+		demo_phase,
+		scene_name
+	])
+
+func _get_demo_trust_snapshot() -> Dictionary:
+	var trust := {
+		"baker": 0,
+		"merch": 0,
+		"meanGuard": 0
+	}
+
+	for npc in get_tree().get_nodes_in_group("npc"):
+		var npc_id_value = npc.get("npc_id")
+		var npc_id = str(npc_id_value) if npc_id_value != null else ""
+		if not trust.has(npc_id):
+			continue
+
+		var trust_value: int = 0
+		var interaction = npc.get_node_or_null("NPC_Interaction")
+		if interaction:
+			var current_relationship = interaction.get("current_relationship")
+			if typeof(current_relationship) == TYPE_INT or typeof(current_relationship) == TYPE_FLOAT:
+				trust_value = int(current_relationship)
+		elif npc.has_method("get_relationship"):
+			trust_value = int(npc.get_relationship())
+
+		trust[npc_id] = trust_value
+
+	return trust
+
+func _bool_to_tf(value: bool) -> String:
+	return "T" if value else "F"
+
 func _setup_gemini_client() -> void:
 	"""Create and initialize the Gemini API client"""
 	var gemini = Node.new()
 	gemini.name = "GeminiClient"
 	gemini.set_script(load("res://scripts/gemini_client.gd"))
 	add_child(gemini)
-	print("✓ GeminiClient initialized")
+	if VERBOSE_DEBUG:
+		print("✓ GeminiClient initialized")
 
 func _setup_rumor_system() -> void:
 	"""Create and initialize the rumor propagation system"""
@@ -78,7 +157,8 @@ func _setup_rumor_system() -> void:
 	rumor_system.name = "RumorSystem"
 	rumor_system.set_script(load("res://scripts/rumor_system.gd"))
 	add_child(rumor_system)
-	print("✓ RumorSystem initialized")
+	if VERBOSE_DEBUG:
+		print("✓ RumorSystem initialized")
 
 func _setup_quest_manager() -> void:
 	"""Create and initialize the quest/approval tracker"""
@@ -86,7 +166,8 @@ func _setup_quest_manager() -> void:
 	quest_manager.name = "QuestManager"
 	quest_manager.set_script(load("res://scripts/quest_manager.gd"))
 	add_child(quest_manager)
-	print("✓ QuestManager initialized")
+	if VERBOSE_DEBUG:
+		print("✓ QuestManager initialized")
 
 func _setup_trust_hud() -> void:
 	"""Create the pinned trust HUD for demo"""
@@ -133,7 +214,8 @@ func _setup_trust_hud() -> void:
 		# Register label with controller
 		trust_controller.call_deferred("register_npc", npc_id, label)
 	
-	print("✓ Trust HUD created")
+	if VERBOSE_DEBUG:
+		print("✓ Trust HUD created")
 
 func _setup_npcs() -> void:
 	"""Set NPC properties for the controlled demo path"""
@@ -145,7 +227,8 @@ func _setup_npcs() -> void:
 	if dialogue_ui == null:
 		push_error("[Main] No DialogueUI found in group! Make sure UI.tscn is instantiated and DialogueUI is in 'dialogue_ui' group.")
 	else:
-		print("[Main] Found DialogueUI successfully")
+		if VERBOSE_DEBUG:
+			print("[Main] Found DialogueUI successfully")
 	
 	var npcs = get_tree().get_nodes_in_group("npc")
 	var town_roam_points = _collect_town_roam_points()
