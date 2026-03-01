@@ -18,6 +18,16 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
+[node name="HintLabel" type="Label" parent="Hud/DialogueUI" unique_id=485879628 groups=["dialogue_ui"]]
+layout_mode = 1
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_top = -23.0
+offset_right = 607.0
+grow_vertical = 0
+text = "Press E to talk"
+
 [node name="DialoguePanel" type="Panel" parent="Hud/DialogueUI" unique_id=2121308373]
 custom_minimum_size = Vector2(0, 220)
 layout_mode = 1
@@ -67,8 +77,3 @@ custom_minimum_size = Vector2(80, 0)
 layout_mode = 2
 size_flags_horizontal = 4
 text = "Say"
-
-[node name="HintLabel" type="Label" parent="Hud/DialogueUI/DialoguePanel/Margin/VBox" unique_id=485879628]
-visible = false
-layout_mode = 2
-text = "Press E to talk"

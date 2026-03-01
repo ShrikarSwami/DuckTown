@@ -23,8 +23,8 @@ texture = ExtResource("2_ktgr7")
 
 [node name="InteractArea" type="Area2D" parent="." unique_id=1275081626 groups=["npc_interact"]]
 scale = Vector2(2.5, 2.5)
-collision_layer = 2
-collision_mask = 2
+collision_layer = 4
+collision_mask = 4
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="InteractArea" unique_id=809746891]
 shape = SubResource("CircleShape2D_7pv12")

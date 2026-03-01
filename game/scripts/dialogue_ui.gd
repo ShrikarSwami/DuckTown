@@ -1,59 +1,132 @@
+# dialogue_ui.gd (clean replacement, no pinning, relies on UI.tscn anchors)
 extends Control
 
-@onready var name_label: Label = $DialoguePanel/Margin/VBox/NameLabel
-@onready var chat_log: RichTextLabel = $DialoguePanel/Margin/VBox/ChatLog
-@onready var user_input: LineEdit = $DialoguePanel/Margin/VBox/InputRow/UserInput
-@onready var send_button: Button = $DialoguePanel/Margin/VBox/InputRow/SendButton
-@onready var hint_label: Label = $Hud/DialogueUI/DialoguePanel/Margin/VBox/HintLabel
+@export var hint_label_path: NodePath
+@export var dialogue_panel_path: NodePath
+@export var npc_name_label_path: NodePath
 
-func show_hint(npc_name: String) -> void:
-	hint_label.text = "Press E to talk to " + npc_name
-	hint_label.show()
+var _hint_label: Label
+var _dialogue_panel: Control
+var _npc_name_label: Label
 
-func hide_hint() -> void:
-	hint_label.hide()
+var _dialogue_open: bool = false
+var _current_npc: Node = null
 
-var current_npc: Node = null
 
 func _ready() -> void:
-	hide()
-	send_button.pressed.connect(_on_send_pressed)
-	user_input.text_submitted.connect(_on_text_submitted)
+	_hint_label = _resolve_hint_label()
+	_dialogue_panel = _resolve_dialogue_panel()
+	_npc_name_label = _resolve_npc_name_label()
 
-func open_for_npc(npc: Node) -> void:
-	current_npc = npc
-	show()
-	user_input.grab_focus()
+	print("DialogueUI ready")
+	print("  HintLabel resolved: %s" % _node_debug(_hint_label))
+	print("  DialoguePanel resolved: %s" % _node_debug(_dialogue_panel))
+	print("  NPCNameLabel resolved: %s" % _node_debug(_npc_name_label))
 
-	# NPC display name (fallback to node name)
-	var display_name := npc.name
-	if npc.has_meta("display_name"):
-		display_name = str(npc.get_meta("display_name"))
+	if _dialogue_panel == null:
+		push_error("DialogueUI: DialoguePanel not found. Set dialogue_panel_path OR ensure a child named DialoguePanel exists.")
+	else:
+		_dialogue_panel.hide()
+		print("  DialoguePanel hidden on ready (visible=%s)" % str(_dialogue_panel.visible))
 
-	name_label.text = display_name
+	if _hint_label != null:
+		_hint_label.hide()
 
-	# Optional greeting
-	chat_log.clear()
-	_append_line("[b]%s:[/b] Hello." % display_name)
 
-func _on_send_pressed() -> void:
-	_submit_user_text()
+func show_hint(text: String) -> void:
+	print("show_hint called with npc name: %s" % _extract_npc_name_from_hint(text))
 
-func _on_text_submitted(_text: String) -> void:
-	_submit_user_text()
-
-func _submit_user_text() -> void:
-	var msg := user_input.text.strip_edges()
-	if msg == "":
+	if _dialogue_open:
 		return
 
-	_append_line("[b]You:[/b] %s" % msg)
-	user_input.text = ""
+	if _hint_label == null:
+		push_warning("DialogueUI: show_hint called but HintLabel is null. Set hint_label_path OR ensure a child named HintLabel exists.")
+		return
 
-	# Placeholder response for now
-	var npc_name := name_label.text
-	_append_line("[b]%s:[/b] (thinking...)" % npc_name)
+	_hint_label.text = text
+	_hint_label.show()
 
-func _append_line(bbcode_line: String) -> void:
-	chat_log.append_text(bbcode_line + "\n")
-	chat_log.scroll_to_line(chat_log.get_line_count())
+
+func hide_hint() -> void:
+	print("hide_hint called")
+
+	if _hint_label == null:
+		return
+
+	_hint_label.hide()
+
+
+func open_for_npc(npc: Node) -> void:
+	_current_npc = npc
+	_dialogue_open = true
+
+	var npc_name: String = npc.name if npc != null else "Unknown"
+	print("open_for_npc called with npc name: %s" % npc_name)
+
+	hide_hint()
+
+	if _dialogue_panel == null:
+		push_error("DialogueUI: open_for_npc called but DialoguePanel is null. Set dialogue_panel_path OR ensure a child named DialoguePanel exists.")
+		return
+
+	_dialogue_panel.show()
+
+	if _npc_name_label != null:
+		_npc_name_label.text = npc_name
+
+	print("  DialoguePanel visible=%s" % str(_dialogue_panel.visible))
+
+
+func close_dialogue() -> void:
+	print("close_dialogue called")
+
+	_dialogue_open = false
+	_current_npc = null
+
+	if _dialogue_panel != null:
+		_dialogue_panel.hide()
+
+
+func is_dialogue_open() -> bool:
+	return _dialogue_open
+
+
+func _resolve_hint_label() -> Label:
+	var n: Node = null
+	if hint_label_path != NodePath():
+		n = get_node_or_null(hint_label_path)
+	if n == null:
+		n = find_child("HintLabel", true, false)
+	return n as Label
+
+
+func _resolve_dialogue_panel() -> Control:
+	var n: Node = null
+	if dialogue_panel_path != NodePath():
+		n = get_node_or_null(dialogue_panel_path)
+	if n == null:
+		n = find_child("DialoguePanel", true, false)
+	return n as Control
+
+
+func _resolve_npc_name_label() -> Label:
+	var n: Node = null
+	if npc_name_label_path != NodePath():
+		n = get_node_or_null(npc_name_label_path)
+	if n == null:
+		n = find_child("NPCNameLabel", true, false)
+	return n as Label
+
+
+func _extract_npc_name_from_hint(text: String) -> String:
+	var marker: String = "Press E to talk to "
+	var idx: int = text.find(marker)
+	if idx == -1:
+		return text
+	return text.substr(idx + marker.length())
+
+
+func _node_debug(n: Node) -> String:
+	if n == null:
+		return "null"
+	return "%s (%s)" % [String(n.get_path()), n.get_class()]
