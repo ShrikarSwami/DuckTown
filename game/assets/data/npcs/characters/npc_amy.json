@@ -1,0 +1,71 @@
+{
+  "id": "npc_amy",
+  "class": "Npc",
+  "name": "Amy",
+  "role": "Decorations + Shirts",
+  "oneLineVibe": "like a squirrel on caffeine",
+  "coreTraits": [
+    "constantly stressed",
+    "over-panicked",
+    "perfectionist"
+  ],
+  "tasks": {
+    "publicTasks": [
+      "Make shirts for everyone (needs to learn 2 NPC outfit requirements).",
+      "Set up all decorations."
+    ],
+    "dependencies": [
+      {
+        "type": "info",
+        "requiresFromNpcCount": 2,
+        "requires": "outfit requirements"
+      }
+    ]
+  },
+  "pressurePoints": {
+    "fearsOrPressurePoint": "If the event goes haywire or no one shows up.",
+    "whatMakesHerFold": "Strong signs the party will fail or people won't attend."
+  },
+  "goals": {
+    "whatTheyWantFromDuckParty": "The perfect event.",
+    "mayorGoalForThem": "Give everyone outfits and set up decorations properly."
+  },
+  "relationships": {
+    "dealBreakers": [
+      "npc_hans"
+    ],
+    "friends": [
+      "npc_sheldon",
+      "npc_peta"
+    ],
+    "disliked_ppl": [
+      "npc_leonard"
+    ],
+    "secretRespect": [],
+    "notes": [
+      "Suspicious of Leonard's niceness.",
+      "Likes the coder; historian is oddly nice to her."
+    ]
+  },
+  "secrets": {
+    "mildSecret": "She thinks this is going to be the last DuckParty ever!",
+    "spicySafeSecret": "She likes the coder (Sheldon).",
+    "secretTaskHidden": null
+  },
+  "rumorBehavior": {
+    "spreadsRumors": true,
+    "accuracyMinPercent": 40,
+    "accuracyMaxPercent": 60,
+    "talksToAtLeast": 2,
+    "spreadStyle": "anxious-over-sharing"
+  },
+  "speechStyle": {
+    "tone": "jittery, frantic",
+    "length": "medium",
+    "catchphrasesOrTicks": []
+  },
+  "difficulty": {
+    "howEasyToConvince": "medium",
+    "pointsRequired": 4
+  }
+}

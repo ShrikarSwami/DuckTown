@@ -1,0 +1,67 @@
+{
+  "id": "npc_leonard",
+  "class": "Npc",
+  "name": "Leonard",
+  "role": "Nice Guard / Safety",
+  "oneLineVibe": "like the nice version of the cop from the Lego movie",
+  "coreTraits": [
+    "nice",
+    "chatty",
+    "chill guy"
+  ],
+  "tasks": {
+    "publicTasks": [
+      "Ask if people’s tasks are safe.",
+      "Create a safety presentation."
+    ],
+    "dependencies": [
+      {
+        "type": "coordination",
+        "withNpcId": "npc_olaf",
+        "description": "Works alongside Olaf on safety checks and presentation."
+      }
+    ]
+  },
+  "pressurePoints": {
+    "fearsOrPressurePoint": "Pressure from his partner (Olaf).",
+    "whatMakesHimFold": "Being pushed by Olaf to act tougher or pick a side."
+  },
+  "goals": {
+    "whatTheyWantFromDuckParty": "A safe event.",
+    "mayorGoalForThem": "Keep the event safe and make good presentations."
+  },
+  "relationships": {
+    "dealBreakers": [],
+    "friends": [
+      "npc_olaf"
+    ],
+    "disliked_ppl": [],
+    "secretRespect": [],
+    "notes": [
+      "Doesn’t care much about people who don’t like him (unless they are part of his secret).",
+      "Niceness is partly strategic: he tries to make people drop their guard."
+    ]
+  },
+  "secrets": {
+    "mildSecret": "He is nice to make people drop their guards around him.",
+    "spicySafeSecret": "He secretly doesn’t like one random person, but tries to hide it.",
+    "secretTaskHidden": null
+  },
+  "rumorBehavior": {
+    "spreadsRumors": true,
+    "accuracyMinPercent": 40,
+    "accuracyMaxPercent": 60,
+    "talksToAtLeast": 2,
+    "spreadStyle": "friendly-chatter",
+    "notes": "Talks to a lot of people; rumors tend to spread widely through him."
+  },
+  "speechStyle": {
+    "tone": "polite, people-pleaser",
+    "length": "medium",
+    "catchphrasesOrTicks": []
+  },
+  "difficulty": {
+    "howEasyToConvince": "low",
+    "pointsRequired": 2
+  }
+}

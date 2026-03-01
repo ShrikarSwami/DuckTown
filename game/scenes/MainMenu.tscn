@@ -1,0 +1,125 @@
+[gd_scene format=3 uid="uid://bj5ojgpeqowky"]
+
+[ext_resource type="Script" uid="uid://fg0c6hmd6ii0" path="res://scripts/main_menu.gd" id="1_main_menu"]
+[ext_resource type="Texture2D" uid="uid://7bi6upa48x6g" path="res://assets/sprites/logo.png" id="2_logo"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_play_normal"]
+bg_color = Color(1, 0.9, 0.2, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_play_pressed"]
+bg_color = Color(1, 0.6, 0.1, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_play_hover"]
+bg_color = Color(1, 0.6, 0.1, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_quit_normal"]
+bg_color = Color(0.18, 0.25, 0.33, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[node name="MainMenu" type="Control" unique_id=1913777658]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_main_menu")
+
+[node name="Background" type="ColorRect" parent="." unique_id=328509851]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.53, 0.81, 0.98, 1)
+
+[node name="MenuMargins" type="MarginContainer" parent="." unique_id=447899131]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 12
+
+[node name="CenterContainer" type="CenterContainer" parent="MenuMargins" unique_id=239683535]
+layout_mode = 2
+
+[node name="MenuCard" type="PanelContainer" parent="MenuMargins/CenterContainer" unique_id=1545717426]
+layout_mode = 2
+
+[node name="CardMargin" type="MarginContainer" parent="MenuMargins/CenterContainer/MenuCard" unique_id=6313720]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 12
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MenuMargins/CenterContainer/MenuCard/CardMargin" unique_id=123670179]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="LogoContainer" type="CenterContainer" parent="MenuMargins/CenterContainer/MenuCard/CardMargin/VBoxContainer" unique_id=860426475]
+layout_mode = 2
+
+[node name="Logo" type="TextureRect" parent="MenuMargins/CenterContainer/MenuCard/CardMargin/VBoxContainer/LogoContainer" unique_id=455397210]
+custom_minimum_size = Vector2(240, 72)
+layout_mode = 2
+texture = ExtResource("2_logo")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Subtitle" type="Label" parent="MenuMargins/CenterContainer/MenuCard/CardMargin/VBoxContainer" unique_id=1253067294]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.06, 0.12, 0.2, 1)
+theme_override_font_sizes/font_size = 11
+text = "A Party Planning Adventure"
+horizontal_alignment = 1
+
+[node name="Spacer" type="Control" parent="MenuMargins/CenterContainer/MenuCard/CardMargin/VBoxContainer" unique_id=221069977]
+custom_minimum_size = Vector2(0, 8)
+layout_mode = 2
+
+[node name="PlayButton" type="Button" parent="MenuMargins/CenterContainer/MenuCard/CardMargin/VBoxContainer" unique_id=932140465]
+custom_minimum_size = Vector2(240, 36)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.1, 0.1, 0.1, 1)
+theme_override_colors/font_pressed_color = Color(0.05, 0.05, 0.05, 1)
+theme_override_colors/font_hover_color = Color(0.05, 0.05, 0.05, 1)
+theme_override_font_sizes/font_size = 14
+theme_override_styles/normal = SubResource("StyleBoxFlat_play_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_play_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_play_hover")
+text = "PLAY"
+
+[node name="QuitButton" type="Button" parent="MenuMargins/CenterContainer/MenuCard/CardMargin/VBoxContainer" unique_id=640223513]
+custom_minimum_size = Vector2(240, 36)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.95, 0.95, 0.95, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 13
+theme_override_styles/normal = SubResource("StyleBoxFlat_quit_normal")
+text = "QUIT"
+
+[connection signal="pressed" from="MenuMargins/CenterContainer/MenuCard/CardMargin/VBoxContainer/PlayButton" to="." method="_on_play_button_pressed"]
+[connection signal="pressed" from="MenuMargins/CenterContainer/MenuCard/CardMargin/VBoxContainer/QuitButton" to="." method="_on_quit_button_pressed"]

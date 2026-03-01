@@ -1,0 +1,52 @@
+[
+  {
+    "id": "npc_kwa",
+    "name": "Kwa",
+    "file": "characters/npc_kwa.json"
+  },
+  {
+    "id": "npc_julio",
+    "name": "Julio",
+    "file": "characters/npc_julio.json"
+  },
+  {
+    "id": "npc_amy",
+    "name": "Amy",
+    "file": "characters/npc_amy.json"
+  },
+  {
+    "id": "npc_hans",
+    "name": "Hans",
+    "file": "characters/npc_hans.json"
+  },
+  {
+    "id": "npc_leonard",
+    "name": "Leonard",
+    "file": "characters/npc_leonard.json"
+  },
+  {
+    "id": "npc_olaf",
+    "name": "Olaf",
+    "file": "characters/npc_olaf.json"
+  },
+  {
+    "id": "npc_vince",
+    "name": "Vince",
+    "file": "characters/npc_vince.json"
+  },
+  {
+    "id": "npc_patrica",
+    "name": "Patrica",
+    "file": "characters/npc_patrica.json"
+  },
+  {
+    "id": "npc_peta",
+    "name": "Peta",
+    "file": "characters/npc_peta.json"
+  },
+  {
+    "id": "npc_sheldon",
+    "name": "Sheldon",
+    "file": "characters/npc_sheldon.json"
+  }
+]

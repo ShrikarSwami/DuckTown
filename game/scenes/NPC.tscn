@@ -1,5 +1,6 @@
-[gd_scene format=3 uid="uid://c4cfqlf3rwees"]
+[gd_scene load_steps=4 format=3 uid="uid://c4cfqlf3rwees"]
 
+[ext_resource type="Script" path="res://scripts/npc.gd" id="1_npc_script"]
 [ext_resource type="Texture2D" uid="uid://rcwoe1limwwd" path="res://assets/sprites/characters/Characters/Baker_Character.png" id="2_ktgr7"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_jnjht"]
@@ -8,7 +9,10 @@ size = Vector2(10, 7)
 [sub_resource type="CircleShape2D" id="CircleShape2D_7pv12"]
 radius = 30.864916
 
-[node name="Npc" type="CharacterBody2D" unique_id=1036836631]
+[node name="Npc" type="CharacterBody2D" unique_id=1036836631 groups=["npc"]]
+collision_layer = 1
+collision_mask = 1
+script = ExtResource("1_npc_script")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=2062374654]
 position = Vector2(0, 21.25)
@@ -23,8 +27,25 @@ texture = ExtResource("2_ktgr7")
 
 [node name="InteractArea" type="Area2D" parent="." unique_id=1275081626 groups=["npc_interact"]]
 scale = Vector2(2.5, 2.5)
-collision_layer = 2
-collision_mask = 2
+collision_layer = 4
+collision_mask = 4
+input_pickable = true
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="InteractArea" unique_id=809746891]
 shape = SubResource("CircleShape2D_7pv12")
+
+[node name="NameTag" type="Label" parent="."]
+offset_left = -30.0
+offset_top = -40.0
+offset_right = 30.0
+offset_bottom = -25.0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.8)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 1
+theme_override_font_sizes/font_size = 12
+text = "NPC"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[connection signal="input_event" from="InteractArea" to="." method="_on_interact_area_input_event"]

@@ -1,0 +1,85 @@
+[gd_scene load_steps=2 format=3 uid="uid://cadq76pvpvdw"]
+
+[ext_resource type="Script" path="res://scripts/party_scene.gd" id="1_a1234"]
+[ext_resource type="AudioStream" path="res://assets/Audio/Party.wav" id="2_party_audio"]
+
+[node name="PartyScene" type="Node2D"]
+script = ExtResource("1_a1234")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="."]
+
+[node name="Celebration" type="Control" parent="."]
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="Background" type="ColorRect" parent="Celebration"]
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.8, 0.6, 0.2, 1.0)
+
+[node name="Title" type="Label" parent="Celebration"]
+anchor_left = 0.5
+anchor_top = 0.3
+anchor_right = 0.5
+anchor_bottom = 0.3
+offset_left = -150.0
+offset_top = -30.0
+offset_right = 150.0
+offset_bottom = 30.0
+text = "🎉 PARTY TIME! 🦆"
+text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+alignment = 1
+add_theme_font_size_override("font_size", 48)
+
+[node name="Message" type="Label" parent="Celebration"]
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -200.0
+offset_top = -30.0
+offset_right = 200.0
+offset_bottom = 30.0
+text = "All approvals obtained!
+You've won DuckTown's trust!
+(Restarting in 3 seconds...)"
+text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+alignment = 1
+add_theme_font_size_override("font_size", 24)
+
+[node name="VideoOverlay" type="Control" parent="."]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="VictoryVideo" type="VideoStreamPlayer" parent="VideoOverlay"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+autoplay = false
+
+[node name="PartyAudio" type="AudioStreamPlayer" parent="VideoOverlay"]
+stream = ExtResource("2_party_audio")
+autoplay = false
+
+[node name="FadeOverlay" type="ColorRect" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 0)

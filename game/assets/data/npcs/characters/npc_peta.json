@@ -1,0 +1,80 @@
+{
+  "id": "npc_peta",
+  "class": "Npc",
+  "name": "Peta",
+  "role": "Duck Superfan / Historian",
+  "oneLineVibe": "super fan of ducks and town history",
+  "coreTraits": [
+    "obsessive",
+    "knows town history"
+  ],
+  "tasks": {
+    "publicTasks": [
+      "Work on a duck-themed event element (history booth / tradition display)."
+    ],
+    "dependencies": [
+      {
+        "type": "social",
+        "description": "Coordinates with the merch person for materials or props.",
+        "withNpcId": "npc_amy"
+      }
+    ]
+  },
+  "pressurePoints": {
+    "fearsOrPressurePoint": "The merch person (npc_amy).",
+    "whatMakesHimFold": "Rejection or disapproval from Amy strongly affects him."
+  },
+  "goals": {
+    "whatTheyWantFromDuckParty": "Make people like ducks as much as he does.",
+    "mayorGoalForThem": "Prevent him from going overboard with the duck theme."
+  },
+  "relationships": {
+    "dealBreakers": [],
+    "friends": [
+      "npc_hans",
+      "npc_amy"
+    ],
+    "disliked_ppl": [
+      "npc_sheldon",
+      "npc_leonard"
+    ],
+    "secretRespect": []
+  },
+  "secrets": {
+    "mildSecret": {
+      "description": "He knows 1–2 random NPC mild secrets.",
+      "randomCount": {
+        "min": 1,
+        "max": 2
+      },
+      "targets": [
+        "RANDOM_AT_START:petaMildSecretTarget1",
+        "RANDOM_AT_START:petaMildSecretTarget2"
+      ],
+      "excludeNpcIds": [
+        "npc_julio",
+        "npc_kwa",
+        "npc_peta"
+      ]
+    },
+    "spicySafeSecret": "He likes Amy romantically.",
+    "secretTaskHidden": null
+  },
+  "rumorBehavior": {
+    "spreadsRumors": true,
+    "accuracyMinPercent": 70,
+    "accuracyMaxPercent": 90,
+    "talksToAtLeast": 1,
+    "spreadStyle": "facts-and-lore",
+    "notes": "Doesn’t talk to many people besides Amy, but when he does, he’s usually accurate."
+  },
+  "speechStyle": {
+    "tone": "frantic, excited",
+    "length": "long",
+    "catchphrasesOrTicks": []
+  },
+  "difficulty": {
+    "howEasyToConvince": "medium",
+    "pointsRequired": 4
+  }
+}

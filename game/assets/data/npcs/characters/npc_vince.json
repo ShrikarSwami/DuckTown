@@ -1,0 +1,67 @@
+{
+  "id": "npc_vince",
+  "class": "Npc",
+  "name": "Vince",
+  "role": "Musician",
+  "oneLineVibe": "gen-z rock/alt vibe",
+  "coreTraits": [
+    "doesn't like authority",
+    "likes music",
+    "a little naive"
+  ],
+  "tasks": {
+    "publicTasks": [
+      "Make a song for the Duck Party."
+    ],
+    "dependencies": []
+  },
+  "pressurePoints": {
+    "fearsOrPressurePoint": "Being controlled or silenced.",
+    "whatMakesHimFold": "Being publicly embarrassed or creatively shut down."
+  },
+  "goals": {
+    "whatTheyWantFromDuckParty": "Use the event as a platform to criticize authority.",
+    "mayorGoalForThem": "Make a friendly show everyone enjoys."
+  },
+  "relationships": {
+    "dealBreakers": [
+      "npc_hans"
+    ],
+    "friends": [
+      "npc_sheldon"
+    ],
+    "disliked_ppl": [
+      "npc_kwa",
+      "npc_olaf"
+    ],
+    "secretRespect": [
+      "npc_patrica"
+    ],
+    "notes": [
+      "Doesn’t like authority figures.",
+      "Admires Patrica’s boldness and gossip energy."
+    ]
+  },
+  "secrets": {
+    "mildSecret": "He knows Patrica is a major gossiper.",
+    "spicySafeSecret": "He wants to play a song insulting the mayor and authority figures.",
+    "secretTaskHidden": null
+  },
+  "rumorBehavior": {
+    "spreadsRumors": true,
+    "accuracyMinPercent": 40,
+    "accuracyMaxPercent": 90,
+    "talksToAtLeast": 2,
+    "spreadStyle": "dramatic-and-exaggerated",
+    "notes": "Enjoys talking about drama and stirring reactions."
+  },
+  "speechStyle": {
+    "tone": "nonchalant, sarcastic",
+    "length": "medium",
+    "catchphrasesOrTicks": []
+  },
+  "difficulty": {
+    "howEasyToConvince": "high",
+    "pointsRequired": 6
+  }
+}
