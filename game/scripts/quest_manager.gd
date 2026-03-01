@@ -17,7 +17,7 @@ class Approval:
 
 var approvals: Dictionary = {}  # npc_id -> Approval
 var all_approvals_met: bool = false
-var _victory_triggered: bool = false
+var _party_triggered_once: bool = false
 
 # Demo path tracking
 var demo_phase: int = 0  # 0=start, 1=talked_to_baker, 2=talked_to_merch, 3=ready_for_guard
@@ -43,6 +43,7 @@ var _demo_fallback_responses := {
 }
 
 signal approval_changed(npc_id: String, is_approved: bool)
+signal approvals_changed(npc_id: String, approved: bool)
 signal approvals_updated(baker_ok: bool, merch_ok: bool, mean_guard_ok: bool, approvals_count: int)
 signal all_approvals_met_signal()
 signal party_triggered()
@@ -98,12 +99,16 @@ func _on_npc_relationship_changed(npc_id: String, new_value: int, delta: int):
 			
 			if approval.is_approved and not was_approved:
 				print("[QuestManager] %s approved! (trust: %d)" % [approval.npc_name, new_value])
+				print("[VERIFY] approvals_changed emitted for %s" % npc_id)
 				approval_changed.emit(npc_id, true)
+				approvals_changed.emit(npc_id, true)
 				_emit_approvals_updated()
 				_check_all_approvals()
 			elif not approval.is_approved and was_approved:
 				print("[QuestManager] %s approval lost! (trust: %d)" % [approval.npc_name, new_value])
+				print("[VERIFY] approvals_changed emitted for %s" % npc_id)
 				approval_changed.emit(npc_id, false)
+				approvals_changed.emit(npc_id, false)
 				_emit_approvals_updated()
 				all_approvals_met = false
 
@@ -135,23 +140,35 @@ func _check_all_approvals() -> void:
 		all_approvals_met = true
 		print("[DemoPhase] ✨ ALL APPROVALS MET! Party unlock!")
 		all_approvals_met_signal.emit()
-		trigger_victory()
+		_trigger_party_once()
+	elif not all_met:
+		all_approvals_met = false
 
-func trigger_victory() -> void:
+func _trigger_party_once() -> void:
 	"""Single-fire transition to Party scene when all approvals are met."""
-	if _victory_triggered:
+	if _party_triggered_once:
 		if VERBOSE_DEBUG:
 			print("[QuestManager] Victory already triggered, ignoring duplicate call")
 		return
 
-	_victory_triggered = true
-	print("[VERIFY] All approvals met -> starting Party scene")
+	_party_triggered_once = true
+
+	for dialogue_ui in get_tree().get_nodes_in_group("dialogue_ui"):
+		if dialogue_ui != null and dialogue_ui.has_method("close"):
+			dialogue_ui.close()
+			break
+
+	print("[VERIFY] All approvals met -> changing to Party scene")
 	party_triggered.emit()
 
 	var err := get_tree().change_scene_to_file("res://scenes/Party.tscn")
 	if err != OK:
 		push_error("[QuestManager] Failed to load Party scene")
-		_victory_triggered = false
+		_party_triggered_once = false
+
+func trigger_victory() -> void:
+	"""Compatibility wrapper for previous callers."""
+	_trigger_party_once()
 
 func get_approval(npc_id: String) -> Approval:
 	"""Get approval status for an NPC"""

@@ -226,6 +226,7 @@ func _on_gemini_response(response: Dictionary):
 	# ===== DETERMINISTIC DEMO RULES =====
 	# Apply minimum trust deltas when demo objectives are met
 	# This ensures reliable progress even if Gemini returns 0 delta
+	var applied_demo_rule_this_turn := false
 	var player_last_message := ""
 	for i in range(dialogue_history.size() - 1, -1, -1):
 		if dialogue_history[i].get("role") == "player":
@@ -251,38 +252,52 @@ func _on_gemini_response(response: Dictionary):
 					print("[DemoRule] merch reassurance -> forcing delta from %d to +10" % rel_delta)
 					rel_delta = 10
 		
-		# Mean Guard rule: easy approval for demo-friendly messages
-		elif npc_id == "meanGuard" or npc_id == "mean_guard":
-			# Check for pattern 1: criticism of nice guard
-			var has_nice_guard = player_last_message.find("nice guard") != -1
-			var has_weak = player_last_message.find("weak") != -1
-			var has_soft = player_last_message.find("soft") != -1
-			var has_bad = player_last_message.find("bad") != -1
-			var has_sucks = player_last_message.find("sucks") != -1
-			var has_not_good = player_last_message.find("not good") != -1
-			
-			var nice_guard_criticism = has_nice_guard and (has_weak or has_soft or has_bad or has_sucks or has_not_good)
-			
-			# Check for pattern 2: direct recruitment request
-			var has_we_need_you = player_last_message.find("we need you") != -1 or player_last_message.find("need your") != -1
-			var has_guard = player_last_message.find("guard") != -1
-			var has_protect = player_last_message.find("protect") != -1
-			var has_party = player_last_message.find("party") != -1
-			var has_event = player_last_message.find("event") != -1
-			
-			var direct_recruitment = has_we_need_you and (has_guard or has_protect) and (has_party or has_event)
-			
-			# Also accept simple "guard the party" requests
-			var simple_request = has_guard and (has_party or has_event)
-			
-			if nice_guard_criticism or direct_recruitment:
-				if rel_delta < 15:
-					print("[DemoRule] meanGuard easy approval triggered -> forcing delta from %d to +15" % rel_delta)
-					rel_delta = 15
-			elif simple_request:
-				if rel_delta < 10:
-					print("[DemoRule] meanGuard simple request -> forcing delta from %d to +10" % rel_delta)
-					rel_delta = 10
+		# Mean Guard rule: approve when player insults the nice guard
+		elif npc_id == "meanGuard":
+			if not applied_demo_rule_this_turn:
+				var insult_keywords: Array[String] = [
+					"nice guard",
+					"weak",
+					"soft",
+					"too nice",
+					"bad guard",
+					"sucks",
+					"trash",
+					"clown",
+					"can't protect",
+					"can’t protect",
+					"won't protect",
+					"won’t protect"
+				]
+
+				var has_insult_trigger := false
+				for keyword in insult_keywords:
+					if player_last_message.find(keyword) != -1:
+						has_insult_trigger = true
+						break
+
+				if has_insult_trigger:
+					if rel_delta < 35:
+						rel_delta = 35
+					print("[DemoRule] meanGuard insulted nice guard -> approval boost")
+					applied_demo_rule_this_turn = true
+				else:
+					var has_backup_trigger = player_last_message.find("guard the party") != -1 or player_last_message.find("protect") != -1 or player_last_message.find("security") != -1
+					if has_backup_trigger:
+						if rel_delta < 10:
+							rel_delta = 10
+						print("[DemoRule] meanGuard backup security request -> approval boost")
+						applied_demo_rule_this_turn = true
+
+			if applied_demo_rule_this_turn:
+				var projected_relationship := clampi(current_relationship + int(rel_delta), -100, 100)
+				if projected_relationship >= 15 and not bool(_pending_demo_outcome.get("is_scripted_turn", false)):
+					_pending_demo_outcome["is_scripted_turn"] = true
+					_pending_demo_outcome["advance_to_phase"] = 3
+					_pending_demo_outcome["approval_key"] = "meanGuard"
+					_pending_demo_outcome["suppress_rumor"] = true
+					if VERBOSE_DEBUG:
+						print("[DemoRule] meanGuard threshold reached -> forcing scripted commit")
 	# ===== END DETERMINISTIC DEMO RULES =====
 	
 	if rel_delta != 0:
