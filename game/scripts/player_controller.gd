@@ -122,13 +122,15 @@ func _on_area_entered(area: Area2D) -> void:
 		dialogue_ui = get_tree().get_first_node_in_group("dialogue_ui")
 
 	var npc: Node = area.get_parent()
-	var npc_name: String = npc.name if npc != null else "NPC"
+	var display_name: String = _get_npc_display_name(npc)
+	var npc_id: String = npc.get("npc_id") if npc != null else "unknown"
 	var player_name := "Player"
 	if get_tree().root.has_meta("player_name"):
 		player_name = str(get_tree().root.get_meta("player_name"))
 
 	if dialogue_ui != null and dialogue_ui.has_method("show_hint"):
-		var hint_text: String = "%s: Press E to talk to %s" % [player_name, npc_name]
+		var hint_text: String = "%s: Press E to talk to %s" % [player_name, display_name]
+		print("[VERIFY] Hint target: %s display=%s" % [npc_id, display_name])
 		dialogue_ui.call("show_hint", hint_text)
 
 func _on_area_exited(area: Area2D) -> void:
@@ -151,12 +153,14 @@ func _on_area_exited(area: Area2D) -> void:
 		else:
 			var closest: Area2D = _get_closest_interact_area()
 			var npc: Node = closest.get_parent() if closest != null else null
-			var npc_name: String = npc.name if npc != null else "NPC"
+			var display_name: String = _get_npc_display_name(npc)
+			var npc_id: String = npc.get("npc_id") if npc != null else "unknown"
 			var player_name := "Player"
 			if get_tree().root.has_meta("player_name"):
 				player_name = str(get_tree().root.get_meta("player_name"))
 			if dialogue_ui.has_method("show_hint"):
-				var hint_text: String = "%s: Press E to talk to %s" % [player_name, npc_name]
+				var hint_text: String = "%s: Press E to talk to %s" % [player_name, display_name]
+				print("[VERIFY] Hint target: %s display=%s" % [npc_id, display_name])
 				dialogue_ui.call("show_hint", hint_text)
 
 func _setup_input_map_if_missing() -> void:
@@ -166,6 +170,34 @@ func _setup_input_map_if_missing() -> void:
 	_ensure_action_with_keys("move_down", [KEY_S, KEY_DOWN])
 	_ensure_action_with_keys("interact", [KEY_E])
 	_ensure_action_with_keys("emergency_dialogue", [KEY_K])
+
+func _get_npc_display_name(npc: Node) -> String:
+	"""
+	Get NPC display name with priority:
+	1. npc.display_name if present and non-empty
+	2. npc.get_meta("display_name") if present
+	3. npc.npc_id
+	4. npc.name
+	"""
+	if npc == null:
+		return "NPC"
+	
+	# Priority 1: display_name property
+	var display_name = npc.get("display_name")
+	if display_name is String and display_name != "":
+		return display_name
+	
+	# Priority 2: get_meta
+	if npc.has_meta("display_name"):
+		return str(npc.get_meta("display_name"))
+	
+	# Priority 3: npc_id
+	var npc_id = npc.get("npc_id")
+	if npc_id is String and npc_id != "":
+		return npc_id
+	
+	# Priority 4: node name
+	return npc.name
 
 func _force_open_baker_dialogue() -> void:
 	if dialogue_ui == null:

@@ -149,7 +149,9 @@ async function callGeminiAPI(systemPrompt, conversationHistory, userMessage) {
     
     // Extract the text response
     const responseText = result.response.text();
-    console.log(`[callGeminiAPI] Raw Gemini response: ${responseText.substring(0, 200)}...`);
+    console.log(`[callGeminiAPI] Raw Gemini response length: ${responseText.length} chars`);
+    console.log(`[callGeminiAPI] Raw Gemini response: ${responseText.substring(0, 500)}...`);
+    console.log(`[callGeminiAPI] Full response:`, responseText);
     
     // Parse JSON from the response
     const extraction = extractAndParseJSON(responseText);
@@ -449,7 +451,7 @@ ${scriptInstruction}
 
 FAILURE TO FOLLOW THIS INSTRUCTION WILL BREAK THE DEMO.
 Your response will be validated against this requirement.
-Stay under 160 characters and be natural, but MUST include the key elements specified above.`;
+Keep it natural and conversational, but MUST include the key elements specified above.`;
   }
   
   return `ROLE: You are ${npcName} in DuckTown.
@@ -483,7 +485,7 @@ REQUIRED JSON FORMAT:
 RULES:
 1. Return ONLY a single JSON object starting with { and ending with }.
 2. DO NOT wrap in markdown code blocks or triple-backtick json tags.
-3. npc_reply must be <= 160 chars, specific, and in-character.
+3. npc_reply should be natural dialogue (aim for 1-3 sentences, readable on screen).
 4. relationship_delta must be an integer from -10 to 10.
 5. rumor can be null OR {"text": "...", "tags": ["task|npc|event"], "confidence": 0.0-1.0}.
 6. quest_progress can be null OR {"task": "...", "status": "hint|progress|complete"}.

@@ -3,10 +3,16 @@ extends Node2D
 
 const VERBOSE_DEBUG := false
 
-const PARTY_VIDEO_PATH := "res://assets/Video/Party.webm"
-const PARTY_AUDIO_PATH := "res://assets/Audio/Party.wav"
 const PARTY_VIDEO_CACHE_KEY := "party_video_stream"
 const PARTY_AUDIO_CACHE_KEY := "party_audio_stream"
+const PARTY_VIDEO_CANDIDATE_PATHS: Array[String] = [
+	"res://assets/Video/Party.mp4",
+	"res://assets/Video/Party.webm"
+]
+const PARTY_AUDIO_CANDIDATE_PATHS: Array[String] = [
+	"res://assets/Video/Party.wav",
+	"res://assets/Audio/Party.wav"
+]
 
 # Demo run tracking
 var demo_run_count: int = 0
@@ -38,30 +44,39 @@ func _ready():
 func _preload_party_media() -> void:
 	"""Preload party media to avoid first-play hitch, and cache references on SceneTree root."""
 	var root = get_tree().root
+	var selected_video_path := _resolve_first_existing_path(PARTY_VIDEO_CANDIDATE_PATHS)
+	var selected_audio_path := _resolve_first_existing_path(PARTY_AUDIO_CANDIDATE_PATHS)
 
 	var cached_video: VideoStream = null
 	if root.has_meta(PARTY_VIDEO_CACHE_KEY):
 		cached_video = root.get_meta(PARTY_VIDEO_CACHE_KEY) as VideoStream
-	if cached_video == null:
-		cached_video = load(PARTY_VIDEO_PATH) as VideoStream
+	if cached_video == null and not selected_video_path.is_empty():
+		cached_video = load(selected_video_path) as VideoStream
 		if cached_video != null:
 			root.set_meta(PARTY_VIDEO_CACHE_KEY, cached_video)
 
 	var cached_audio: AudioStream = null
 	if root.has_meta(PARTY_AUDIO_CACHE_KEY):
 		cached_audio = root.get_meta(PARTY_AUDIO_CACHE_KEY) as AudioStream
-	if cached_audio == null:
-		cached_audio = load(PARTY_AUDIO_PATH) as AudioStream
+	if cached_audio == null and not selected_audio_path.is_empty():
+		cached_audio = load(selected_audio_path) as AudioStream
 		if cached_audio != null:
 			root.set_meta(PARTY_AUDIO_CACHE_KEY, cached_audio)
 
 	if cached_video == null:
-		push_warning("[Main] Failed to preload party video: %s" % PARTY_VIDEO_PATH)
-	if cached_audio == null:
-		push_warning("[Main] Failed to preload party audio: %s" % PARTY_AUDIO_PATH)
+		push_warning("[Main] Failed to preload party video")
 
-	if cached_video != null and cached_audio != null:
-		print("✓ Party media preloaded and cached")
+	if cached_video != null:
+		print("✓ Party video preloaded and cached")
+	if cached_audio != null:
+		print("✓ Party audio preloaded and cached")
+
+
+func _resolve_first_existing_path(candidates: Array[String]) -> String:
+	for candidate in candidates:
+		if ResourceLoader.exists(candidate):
+			return candidate
+	return ""
 
 func get_demo_run_count() -> int:
 	"""Get the current demo run count"""
